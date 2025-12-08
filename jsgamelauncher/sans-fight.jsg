@@ -1,0 +1,6 @@
+{
+  "name": "Bad Time Simulator",
+  "main": "game.js",
+  "width": 640,
+  "height": 480
+}

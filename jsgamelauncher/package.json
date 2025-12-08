@@ -1,0 +1,20 @@
+{
+  "name": "sans-fight-jsgamelauncher",
+  "version": "1.0.0",
+  "description": "Bad Time Simulator (Sans Fight) port for JSGameLauncher on Knulli/Batocera",
+  "main": "game.js",
+  "author": "jcw87 (original), JSG port by community",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jcw87/c2-sans-fight"
+  },
+  "keywords": [
+    "undertale",
+    "sans",
+    "construct2",
+    "jsgamelauncher",
+    "knulli",
+    "batocera"
+  ]
+}

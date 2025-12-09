@@ -1,5 +1,5 @@
 {
-  "name": "sans-fight-jsgamelauncher",
+  "name": "sans-fight-handeld",
   "version": "1.0.0",
   "description": "Bad Time Simulator (Sans Fight) port for JSGameLauncher on Knulli/Batocera",
   "main": "game.js",
@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jcw87/c2-sans-fight"
+    "url": "https://github.com/huserg/sans-fight-handeld"
   },
   "keywords": [
     "undertale",

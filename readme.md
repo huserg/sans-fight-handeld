@@ -1,6 +1,6 @@
 # Bad Time Simulator (Sans Fight)
 
-This project is a clone of the sans fight from [Undertale](http://undertale.com/).
+This project is a [JSGameLauncher](https://github.com/monteslu/jsgamelauncher) port of the sans fight from [Undertale](http://undertale.com/).
 It was made with [Construct 2](https://www.scirra.com/construct2).
 
 NOW AVAILABLE! [Custom attacks guide](Documentation/README.MD)
@@ -40,10 +40,10 @@ This fork adds support for running the game on **Knulli/Batocera** handheld devi
 ### Installing the Game
 
 1. Download the latest release from the [Releases](../../releases) page
-2. Extract the archive to get the `sans-fight/` folder
+2. Extract the archive to get the `sans-fight-handeld/` folder
 3. Copy to your device:
    ```bash
-   scp -r sans-fight root@<device-ip>:/userdata/roms/jsgames/
+   scp -r sans-fight-handeld root@<device-ip>:/userdata/roms/jsgames/
    ```
 4. Refresh your game list or reboot
 
@@ -65,7 +65,7 @@ This fork adds support for running the game on **Knulli/Batocera** handheld devi
 
 ## Building from Source
 
-> **Note**: Building requires the exported Construct 2 runtime files (`c2runtime.js`, `data.js`, etc.) which are included in releases but not in this repository. Export the project from Construct 2 first, then update the `BACKUP_DIR` path in `scripts/build.sh`.
+The `c2-export/` folder contains the exported Construct 2 runtime files required for building.
 
 ```bash
 # Build for Knulli (default)
@@ -77,7 +77,7 @@ This fork adds support for running the game on **Knulli/Batocera** handheld devi
 ./scripts/build.sh all
 ```
 
-Output: `dist/<target>/sans-fight/`
+Output: `dist/<target>/sans-fight-handeld/`
 
 ---
 

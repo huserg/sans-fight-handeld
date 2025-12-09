@@ -10,14 +10,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 # Path to exported C2 runtime files (c2runtime.js, data.js, images/, media/, *.csv)
-# Update this path to match your local setup
-BACKUP_DIR="${C2_EXPORT_DIR:-$ROOT_DIR/../c2-export}"
+BACKUP_DIR="${C2_EXPORT_DIR:-$ROOT_DIR/c2-export}"
 
 TARGET="${1:-knulli}"
 
 build_target() {
     local target="$1"
-    local OUTPUT_DIR="$ROOT_DIR/dist/$target/sans-fight"
+    local OUTPUT_DIR="$ROOT_DIR/dist/$target/sans-fight-handeld"
 
     echo "================================================"
     echo "Building Sans Fight for $target..."
@@ -61,12 +60,12 @@ case "$TARGET" in
     knulli)
         build_target "knulli"
         echo "To install on Knulli:"
-        echo "  scp -r $ROOT_DIR/dist/knulli/sans-fight root@<device-ip>:/userdata/roms/jsgames/"
+        echo "  scp -r $ROOT_DIR/dist/knulli/sans-fight-handeld root@<device-ip>:/userdata/roms/jsgames/"
         ;;
     batocera)
         build_target "batocera"
         echo "To install on Batocera:"
-        echo "  scp -r $ROOT_DIR/dist/batocera/sans-fight root@<device-ip>:/userdata/roms/jsgames/"
+        echo "  scp -r $ROOT_DIR/dist/batocera/sans-fight-handeld root@<device-ip>:/userdata/roms/jsgames/"
         ;;
     all)
         build_target "knulli"

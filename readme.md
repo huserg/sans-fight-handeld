@@ -7,6 +7,18 @@ NOW AVAILABLE! [Custom attacks guide](Documentation/README.MD)
 
 ---
 
+## LÖVE2D Rebuild
+
+For handheld devices where the Construct 2 runtime is too heavy, a lightweight LÖVE2D rebuild lives in the `love2d/` folder. It reuses the exported CSV attack timelines and textures.
+
+```bash
+love love2d
+```
+
+The controls mirror the JSGameLauncher build (arrow keys/WASD to move, space/up to jump in blue mode, Esc to quit).
+
+---
+
 ## JSGameLauncher Port
 
 This fork adds support for running the game on **Knulli/Batocera** handheld devices via [JSGameLauncher](https://github.com/monteslu/jsgamelauncher).

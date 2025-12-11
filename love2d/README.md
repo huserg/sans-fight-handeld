@@ -12,6 +12,8 @@ love love2d
 
 The engine reads the original CSV timelines from `c2-export/` to drive attack patterns and reuses the exported textures. Controls mirror the existing JSGameLauncher build (arrow keys/WASD to move, space/up to jump in blue mode, Esc to quit).
 
+If you're packaging a standalone `.love`, place the `Textures/` and `c2-export/` folders next to the archive (or include them in the package) so the runtime can find the assets without depending on the parent directory layout.
+
 ## Notes
 
 - Audio is intentionally stubbed to keep the build lightweight.

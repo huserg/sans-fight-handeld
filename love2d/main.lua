@@ -1,13 +1,34 @@
 local Game
 local game
 
+local function hasAssets()
+  return love.filesystem.getInfo("Textures", "directory")
+    and love.filesystem.getInfo("c2-export/sans_final.csv", "file")
+end
+
 local function mountRepoRoot()
-  local base = love.filesystem.getSourceBaseDirectory()
-  local parent = base .. "/.."
-  local ok = love.filesystem.mount(parent, "")
-  if not ok then
-    error("Failed to mount repository root; ensure Textures and data folders are available")
+  if hasAssets() then return true end
+
+  local attempts = {}
+  local function try(path, label)
+    if not path then return false end
+    table.insert(attempts, label or path)
+    local ok = love.filesystem.mount(path, "")
+    if ok and hasAssets() then
+      return true
+    elseif ok then
+      pcall(love.filesystem.unmount, path)
+    end
+    return false
   end
+
+  local base = love.filesystem.getSourceBaseDirectory()
+  if try(base, "source base") then return true end
+  if try(base .. "/..", "parent of source") then return true end
+  if try(love.filesystem.getWorkingDirectory and love.filesystem.getWorkingDirectory(), "working directory") then return true end
+  if try("..", "parent relative") then return true end
+
+  error("Failed to mount repository root; ensure Textures/ and c2-export/ are alongside the .love (tried: " .. table.concat(attempts, ", ") .. ")")
 end
 
 function love.load()

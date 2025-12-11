@@ -22,9 +22,9 @@ local function mountRepoRoot()
     return false
   end
 
-  local base = love.filesystem.getSourceBaseDirectory()
-  if try(base, "source base") then return true end
-  if try(base .. "/..", "parent of source") then return true end
+  local base = love.filesystem.getSourceBaseDirectory and love.filesystem.getSourceBaseDirectory()
+  if base and try(base, "source base") then return true end
+  if base and try(base .. "/..", "parent of source") then return true end
   if try(love.filesystem.getWorkingDirectory and love.filesystem.getWorkingDirectory(), "working directory") then return true end
   if try("..", "parent relative") then return true end
 

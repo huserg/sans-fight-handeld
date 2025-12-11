@@ -3,10 +3,8 @@ Resources.__index = Resources
 
 function Resources.new()
   local self = setmetatable({}, Resources)
-  local base = love.filesystem.getSourceBaseDirectory()
-  local root = base .. "/../Textures/"
   local function image(name)
-    return love.graphics.newImage(root .. name)
+    return love.graphics.newImage("Textures/" .. name)
   end
   self.images = {
     boneV = image("BoneV.png"),

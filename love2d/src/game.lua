@@ -8,10 +8,10 @@ Game.__index = Game
 local WIDTH, HEIGHT = 640, 480
 
 local function loadCSV(path)
-  local base = love.filesystem.getSourceBaseDirectory()
-  local file = assert(io.open(base .. "/../" .. path, "r"))
-  local content = file:read("*a")
-  file:close()
+  local content, size = love.filesystem.read(path)
+  if not content or size == 0 then
+    error("Failed to load timeline: " .. tostring(path))
+  end
   return content
 end
 

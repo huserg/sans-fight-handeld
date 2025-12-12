@@ -32,8 +32,8 @@ function Game:load()
     self.states.battle = require("src.states.battle")
     self.states.fonttest = require("src.states.font_test")
 
-    -- Start with font test state (temporary)
-    self:setState("fonttest")
+    -- Start with loading state
+    self:setState("loading")
 end
 
 function Game:setState(stateName)

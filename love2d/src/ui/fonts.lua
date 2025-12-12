@@ -156,7 +156,7 @@ function Fonts:load()
     self.sans:setCharWidth("-=Pjs{}", 7)
     self.sans:setCharWidth("()<>[]", 6)
     self.sans:setCharWidth("\";`", 5)
-    self.sans:setCharWidth("!',.:|l", 4)
+    self.sans:setCharWidth("!',.:|il", 4)
 
     -- DamageFont
     self.damage = SpriteFont.new(cfg.damage.path, cfg.damage.charWidth, cfg.damage.charHeight)

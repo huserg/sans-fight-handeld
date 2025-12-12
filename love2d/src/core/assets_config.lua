@@ -5,32 +5,40 @@ local AssetsConfig = {
     -- Fonts configuration
     fonts = {
         default = {
-            path = "assets/sprites/defaultfont.png",
+            path = "assets/fonts/defaultfont.png",
             charWidth = 10,
             charHeight = 16,
             cols = 16,
-            rows = 6
+            rows = 6,
+            startChar = 32,
+            hasLowercase = true
         },
         battle = {
-            path = "assets/sprites/battlefont.png",
+            path = "assets/fonts/battlefont.png",
             charWidth = 6,
             charHeight = 6,
             cols = 16,
-            rows = 4
+            rows = 4,
+            startChar = 32,
+            hasLowercase = false
         },
         sans = {
-            path = "assets/sprites/sansfont.png",
+            path = "assets/fonts/sansfont.png",
             charWidth = 16,
             charHeight = 16,
             cols = 16,
-            rows = 6
+            rows = 6,
+            startChar = 32,
+            hasLowercase = true
         },
         damage = {
-            path = "assets/sprites/damagefont.png",
+            path = "assets/fonts/damagefont.png",
             charWidth = 33,
-            charHeight = 48,
+            charHeight = 32,
             cols = 16,
-            rows = 4
+            rows = 6,
+            startChar = 32,
+            hasLowercase = true
         }
     },
 

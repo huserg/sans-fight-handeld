@@ -31,12 +31,12 @@ function FontTest:draw(game)
     Fonts.default:draw(testText, 320, y, "center")
     y = y + 60
 
-    -- Battle font
-    Fonts.battle:setScale(2)
-    Fonts.battle:draw("BattleFont:", 320, y, "center")
-    y = y + 20
-    Fonts.battle:draw(testText, 320, y, "center")
-    y = y + 40
+    -- Battle font (scale 3 for visibility) - UPPERCASE ONLY (no lowercase in this font)
+    Fonts.battle:setScale(3)
+    Fonts.battle:draw("BATTLEFONT:", 320, y, "center")
+    y = y + 30
+    Fonts.battle:draw(testText:upper(), 320, y, "center")
+    y = y + 50
 
     -- Sans font
     Fonts.sans:setScale(2)

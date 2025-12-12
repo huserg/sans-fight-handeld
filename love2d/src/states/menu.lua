@@ -168,6 +168,14 @@ function Menu:update(dt, game)
         self:goBack()
     end
 
+    -- Hidden test menu (T key)
+    if love.keyboard.isDown("t") and not self.tPressed then
+        self.tPressed = true
+        game:setState("test_menu")
+    elseif not love.keyboard.isDown("t") then
+        self.tPressed = false
+    end
+
     -- Update heart cursor position
     local item = self.menuItems[self.selectedIndex + 1]
     local uiCfg = AssetsConfig.ui.menu

@@ -16,17 +16,19 @@ local sprites = {
     headQuads = {}
 }
 
--- Body animation frames: 4x4 grid, 64x64 each
-local BODY_FRAME_SIZE = 64
+-- Body animation frames: 64x70 each
+local BODY_FRAME_W = 64
+local BODY_FRAME_H = 70
 local BODY_COLS = 4
 local BODY_ROWS = 4
 
--- Head expressions: 3x3 grid, ~42x42 each
-local HEAD_FRAME_SIZE = 42
+-- Head expressions: 34x32 each, 3 cols x 3 rows
+local HEAD_FRAME_W = 34
+local HEAD_FRAME_H = 32
 local HEAD_COLS = 3
 local HEAD_ROWS = 3
 
--- Expression names mapped to grid positions
+-- Expression names mapped to grid positions (col, row)
 local EXPRESSIONS = {
     neutral = {0, 0},
     wink = {1, 0},
@@ -56,9 +58,9 @@ local function loadSprites()
         for col = 0, BODY_COLS - 1 do
             local idx = row * BODY_COLS + col
             sprites.bodyQuads[idx] = love.graphics.newQuad(
-                col * BODY_FRAME_SIZE,
-                row * BODY_FRAME_SIZE,
-                BODY_FRAME_SIZE, BODY_FRAME_SIZE,
+                col * BODY_FRAME_W,
+                row * BODY_FRAME_H,
+                BODY_FRAME_W, BODY_FRAME_H,
                 bodyW, bodyH
             )
         end
@@ -68,9 +70,9 @@ local function loadSprites()
     local headW, headH = sprites.head:getDimensions()
     for name, pos in pairs(EXPRESSIONS) do
         sprites.headQuads[name] = love.graphics.newQuad(
-            pos[1] * HEAD_FRAME_SIZE,
-            pos[2] * HEAD_FRAME_SIZE,
-            HEAD_FRAME_SIZE, HEAD_FRAME_SIZE,
+            pos[1] * HEAD_FRAME_W,
+            pos[2] * HEAD_FRAME_H,
+            HEAD_FRAME_W, HEAD_FRAME_H,
             headW, headH
         )
     end
@@ -150,7 +152,7 @@ function Sans:draw()
             self.x, self.y,
             0,
             1, 1,
-            BODY_FRAME_SIZE / 2, BODY_FRAME_SIZE / 2
+            BODY_FRAME_W / 2, BODY_FRAME_H / 2
         )
     end
 
@@ -180,7 +182,7 @@ function Sans:drawHead(x, y, scale)
             x, y,
             0,
             scale, scale,
-            HEAD_FRAME_SIZE / 2, HEAD_FRAME_SIZE / 2
+            HEAD_FRAME_W / 2, HEAD_FRAME_H / 2
         )
     end
 end

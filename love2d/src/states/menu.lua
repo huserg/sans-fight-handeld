@@ -184,14 +184,9 @@ function Menu:update(dt, game)
         self.heartY = uiCfg.itemStartY + self.selectedIndex * uiCfg.itemSpacing + uiCfg.heartOffsetY
     end
 
-    -- Smooth scroll for long menus
-    local targetY = math.max(0, self.heartY - 200)
-    self.scrollY = self.scrollY + (targetY - self.scrollY) * dt * 10
 end
 
 function Menu:draw(game)
-    love.graphics.push()
-    love.graphics.translate(0, -self.scrollY)
 
     love.graphics.setColor(1, 1, 1)
 
@@ -220,8 +215,6 @@ function Menu:draw(game)
         love.graphics.setColor(1, 0, 0)
         love.graphics.draw(self.heartImage, self.heartX, self.heartY, math.pi/2, 1, 1, self.heartOriginX, self.heartOriginY)
     end
-
-    love.graphics.pop()
 end
 
 function Menu:exit()

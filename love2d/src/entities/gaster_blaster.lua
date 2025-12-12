@@ -12,8 +12,9 @@ local sprites = {
     quads = {}
 }
 
--- Animation frames: 2x2 grid, 64x64 each
-local FRAME_SIZE = 64
+-- Animation frames: 2x2 grid, 57x44 each
+local FRAME_W = 57
+local FRAME_H = 44
 local FRAMES = {
     closed = {0, 0},
     opening = {1, 0},
@@ -32,9 +33,9 @@ local function loadSprites()
     local imgW, imgH = sprites.blaster:getDimensions()
     for name, pos in pairs(FRAMES) do
         sprites.quads[name] = love.graphics.newQuad(
-            pos[1] * FRAME_SIZE,
-            pos[2] * FRAME_SIZE,
-            FRAME_SIZE, FRAME_SIZE,
+            pos[1] * FRAME_W,
+            pos[2] * FRAME_H,
+            FRAME_W, FRAME_H,
             imgW, imgH
         )
     end
@@ -80,6 +81,9 @@ function GasterBlaster.new(x, y, angle, scale)
     self.beamLength = 600
     self.beamWidth = 30
     self.beamActive = false
+    self.beamTimer = 0
+    self.wobbleSpeed = 30
+    self.wobbleAmount = 8
 
     -- Damage
     self.damage = 5
@@ -131,10 +135,12 @@ function GasterBlaster:update(dt)
     elseif self.state == STATE_FIRE then
         -- Firing beam
         self.currentFrame = "firing"
+        self.beamTimer = self.beamTimer + dt
         if self.stateTimer >= self.fireTime then
             self.state = STATE_FADE
             self.stateTimer = 0
             self.beamActive = false
+            self.beamTimer = 0
         end
 
     elseif self.state == STATE_FADE then
@@ -184,7 +190,7 @@ function GasterBlaster:draw()
         self.x, self.y,
         self.angle,
         self.scale, self.scale,
-        FRAME_SIZE / 2, FRAME_SIZE / 2
+        FRAME_W / 2, FRAME_H / 2
     )
 
     -- Draw beam
@@ -201,6 +207,10 @@ function GasterBlaster:drawBeam()
     local startX = self.x + cos * 25 * self.scale
     local startY = self.y + sin * 25 * self.scale
 
+    -- Wobble effect on width
+    local wobble = math.sin(self.beamTimer * self.wobbleSpeed) * self.wobbleAmount
+    local beamW = (self.beamWidth + wobble) * self.scale
+
     -- Draw beam as a rectangle
     love.graphics.setColor(1, 1, 1, self.alpha)
 
@@ -208,11 +218,10 @@ function GasterBlaster:drawBeam()
     love.graphics.translate(startX, startY)
     love.graphics.rotate(self.angle)
 
-    -- Main beam
-    local beamW = self.beamWidth * self.scale
+    -- Main beam with wobble
     love.graphics.rectangle("fill", 0, -beamW/2, self.beamLength, beamW)
 
-    -- Brighter core
+    -- Brighter core (also wobbles)
     love.graphics.setColor(1, 1, 1, self.alpha * 0.8)
     love.graphics.rectangle("fill", 0, -beamW/4, self.beamLength, beamW/2)
 

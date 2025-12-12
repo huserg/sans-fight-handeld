@@ -38,6 +38,8 @@ function Game:load()
     self.states.test_bones = require("src.states.tests.test_bones")
     self.states.test_combat = require("src.states.tests.test_combat")
     self.states.test_hp = require("src.states.tests.test_hp")
+    self.states.test_sans = require("src.states.tests.test_sans")
+    self.states.test_blaster = require("src.states.tests.test_blaster")
     self.states.test_audio = require("src.states.tests.test_audio")
 
     -- Start with loading state

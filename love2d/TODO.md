@@ -36,6 +36,22 @@
 - [x] Bone 9-slice rendering (caps + middle repeat)
 - [x] Blue bone support (only hurts when moving)
 - [x] Test bone spawner
+- [x] Gaster Blaster entity with animation states
+- [x] Gaster Blaster beam rendering
+- [x] Sans character entity
+- [x] Sans expressions (9 facial expressions)
+- [x] Sans idle animation
+
+### Debug
+- [x] Hidden test menu (press T in main menu)
+- [x] Font test
+- [x] Heart modes test
+- [x] Bone rendering test
+- [x] Combat zone test
+- [x] HP bar test
+- [x] Sans character test
+- [x] Gaster Blaster test
+- [x] Audio test
 
 ---
 
@@ -55,12 +71,11 @@
 - [ ] Bone slide vertical
 - [ ] Bone gap patterns
 - [ ] Platform bones
-- [ ] Gaster blaster entity
 - [ ] Gaster blaster attack patterns
 - [ ] Blue/orange bone attacks
 
 ### Battle - UI
-- [ ] Sans sprite and animations
+- [ ] Sans positioning in battle
 - [ ] Dialogue system with SansFont
 - [ ] Speech bubble
 - [ ] Battle menu (Fight/Act/Item/Mercy)

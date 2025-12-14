@@ -4,6 +4,7 @@
 local Constants = require("src.core.constants")
 local Input = require("src.systems.input")
 local Fonts = require("src.ui.fonts")
+local Audio = require("src.systems.audio")
 
 local Game = {
     state = "loading",
@@ -25,6 +26,7 @@ local Game = {
 
 function Game:load()
     Input:load()
+    Audio:load()
 
     -- Register states
     self.states.loading = require("src.states.loading")
@@ -41,6 +43,7 @@ function Game:load()
     self.states.test_sans = require("src.states.tests.test_sans")
     self.states.test_blaster = require("src.states.tests.test_blaster")
     self.states.test_audio = require("src.states.tests.test_audio")
+    self.states.test_dialogue = require("src.states.tests.test_dialogue")
 
     -- Start with loading state
     self:setState("loading")

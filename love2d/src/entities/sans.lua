@@ -16,11 +16,27 @@ local sprites = {
     headQuads = {}
 }
 
--- Body animation frames: 64x70 each
+-- Body frames are NOT a regular grid - different sizes per animation
+-- HandDown/HandUp idle: 64x70
+-- HandRight/HandLeft: 96x48
+-- We define each frame manually with {x, y, w, h}
+local BODY_FRAMES = {
+    -- Idle animation (HandDown) - 64x70
+    [0] = {99, 101, 64, 70},   -- idle frame 0
+    [1] = {165, 101, 64, 70},  -- idle frame 1
+    -- More idle frames
+    [2] = {1, 151, 64, 70},
+    [3] = {67, 173, 64, 70},
+    [4] = {133, 173, 64, 70},
+    -- Hand poses (96x48)
+    [5] = {1, 1, 96, 48},      -- hand right
+    [6] = {99, 1, 96, 48},
+    [7] = {1, 51, 96, 48},
+}
+
+-- Default frame size for positioning
 local BODY_FRAME_W = 64
 local BODY_FRAME_H = 70
-local BODY_COLS = 4
-local BODY_ROWS = 4
 
 -- Head expressions: 34x32 each, 3 cols x 3 rows
 local HEAD_FRAME_W = 34
@@ -52,18 +68,17 @@ local function loadSprites()
     sprites.head:setFilter("nearest", "nearest")
     sprites.sweat:setFilter("nearest", "nearest")
 
-    -- Create body quads
+    -- Create body quads from manual frame definitions
     local bodyW, bodyH = sprites.body:getDimensions()
-    for row = 0, BODY_ROWS - 1 do
-        for col = 0, BODY_COLS - 1 do
-            local idx = row * BODY_COLS + col
-            sprites.bodyQuads[idx] = love.graphics.newQuad(
-                col * BODY_FRAME_W,
-                row * BODY_FRAME_H,
-                BODY_FRAME_W, BODY_FRAME_H,
-                bodyW, bodyH
-            )
-        end
+    for idx, frame in pairs(BODY_FRAMES) do
+        sprites.bodyQuads[idx] = love.graphics.newQuad(
+            frame[1], frame[2],  -- x, y
+            frame[3], frame[4],  -- w, h
+            bodyW, bodyH
+        )
+        -- Store frame dimensions for later use
+        sprites.bodyFrameSizes = sprites.bodyFrameSizes or {}
+        sprites.bodyFrameSizes[idx] = {w = frame[3], h = frame[4]}
     end
 
     -- Create head quads
@@ -168,8 +183,11 @@ function Sans:draw()
 end
 
 function Sans:drawHead(x, y, scale)
+    -- Head position: body top - half head height
+    -- Body center is at self.y, body is 70px tall, so top is at self.y - 35
+    -- Head is 32px tall, center it just above body top
     x = x or self.x
-    y = y or self.y - 40
+    y = y or self.y - BODY_FRAME_H / 2 - HEAD_FRAME_H / 2 + 8
     scale = scale or 1
 
     love.graphics.setColor(1, 1, 1, self.alpha)

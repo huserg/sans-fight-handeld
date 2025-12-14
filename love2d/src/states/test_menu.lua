@@ -13,6 +13,7 @@ local TestMenu = {
         { id = "hp", text = "HP Bar Test" },
         { id = "sans", text = "Sans Character Test" },
         { id = "blaster", text = "Gaster Blaster Test" },
+        { id = "dialogue", text = "Dialogue Test" },
         { id = "audio", text = "Audio Test" },
         { id = "back", text = "Back to Menu" }
     },
@@ -53,6 +54,8 @@ function TestMenu:update(dt, game)
             game:setState("test_sans")
         elseif item.id == "blaster" then
             game:setState("test_blaster")
+        elseif item.id == "dialogue" then
+            game:setState("test_dialogue")
         elseif item.id == "audio" then
             game:setState("test_audio")
         elseif item.id == "back" then

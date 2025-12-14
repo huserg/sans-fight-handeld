@@ -3,37 +3,38 @@
 
 local Fonts = require("src.ui.fonts")
 local Input = require("src.systems.input")
+local Audio = require("src.systems.audio")
 
 local TestAudio = {
-    sounds = {},
     items = {
-        { id = "megalovania", text = "Megalovania", path = "assets/audio/mus_zz_megalovania.ogg", type = "stream" },
-        { id = "ding", text = "Ding", path = "assets/audio/ding.ogg", type = "static" },
-        { id = "damage", text = "Player Damaged", path = "assets/audio/playerdamaged.ogg", type = "static" },
-        { id = "menuselect", text = "Menu Select", path = "assets/audio/menuselect.ogg", type = "static" },
-        { id = "menucursor", text = "Menu Cursor", path = "assets/audio/menucursor.ogg", type = "static" },
-        { id = "bonestab", text = "Bone Stab", path = "assets/audio/bonestab.ogg", type = "static" },
-        { id = "blaster", text = "Gaster Blaster", path = "assets/audio/gasterblaster.ogg", type = "static" },
-        { id = "slam", text = "Slam", path = "assets/audio/slam.ogg", type = "static" },
+        { id = "megalovania", text = "Megalovania", type = "music" },
+        { id = "ding", text = "Ding", type = "sfx" },
+        { id = "playerDamaged", text = "Player Damaged", type = "sfx" },
+        { id = "menuSelect", text = "Menu Select", type = "sfx" },
+        { id = "menuCursor", text = "Menu Cursor", type = "sfx" },
+        { id = "boneStab", text = "Bone Stab", type = "sfx" },
+        { id = "gasterBlaster", text = "Gaster Blaster", type = "sfx" },
+        { id = "gasterBlast", text = "Gaster Blast", type = "sfx" },
+        { id = "slam", text = "Slam", type = "sfx" },
+        { id = "warning", text = "Warning", type = "sfx" },
+        { id = "flash", text = "Flash", type = "sfx" },
+        { id = "sansSpeak", text = "Sans Speak", type = "sfx" },
+        { id = "battleText", text = "Battle Text", type = "sfx" },
+        { id = "heartShatter", text = "Heart Shatter", type = "sfx" },
+        { id = "heartSplit", text = "Heart Split", type = "sfx" },
+        { id = "playerHeal", text = "Player Heal", type = "sfx" },
+        { id = "playerFight", text = "Player Fight", type = "sfx" },
     },
     selected = 1,
-    currentMusic = nil
+    scrollOffset = 0,
+    maxVisible = 12
 }
 
 function TestAudio:enter(game)
     self.game = game
     Fonts:load()
     self.selected = 1
-
-    -- Load all sounds
-    for _, item in ipairs(self.items) do
-        local success, source = pcall(function()
-            return love.audio.newSource(item.path, item.type)
-        end)
-        if success then
-            self.sounds[item.id] = source
-        end
-    end
+    self.scrollOffset = 0
 end
 
 function TestAudio:update(dt, game)
@@ -41,44 +42,46 @@ function TestAudio:update(dt, game)
         self.selected = self.selected - 1
         if self.selected < 1 then
             self.selected = #self.items
+            self.scrollOffset = math.max(0, #self.items - self.maxVisible)
+        end
+        -- Adjust scroll
+        if self.selected <= self.scrollOffset then
+            self.scrollOffset = self.selected - 1
         end
     elseif Input:justPressed("down") then
         self.selected = self.selected + 1
         if self.selected > #self.items then
             self.selected = 1
+            self.scrollOffset = 0
+        end
+        -- Adjust scroll
+        if self.selected > self.scrollOffset + self.maxVisible then
+            self.scrollOffset = self.selected - self.maxVisible
         end
     end
 
     if Input:justPressed("confirm") then
         local item = self.items[self.selected]
-        local sound = self.sounds[item.id]
-        if sound then
-            if item.type == "stream" then
-                -- Music toggle
-                if self.currentMusic and self.currentMusic:isPlaying() then
-                    self.currentMusic:stop()
-                    self.currentMusic = nil
-                else
-                    if self.currentMusic then
-                        self.currentMusic:stop()
-                    end
-                    sound:setLooping(true)
-                    sound:play()
-                    self.currentMusic = sound
-                end
+        if item.type == "music" then
+            -- Toggle music
+            if Audio:isMusicPlaying() then
+                Audio:stopMusic()
             else
-                -- Sound effect
-                sound:stop()
-                sound:play()
+                Audio:playMusic(item.id, true)
             end
+        else
+            -- Play SFX
+            Audio:playSfx(item.id)
         end
     end
 
-    if Input:justPressed("cancel") or Input:justPressed("menu") then
-        -- Stop music before leaving
-        if self.currentMusic then
-            self.currentMusic:stop()
-        end
+    -- Mute toggle
+    if Input:justPressed("cancel") then
+        Audio:toggleMute()
+    end
+
+    if Input:justPressed("menu") then
+        Audio:stopMusic()
         game:setState("test_menu")
     end
 end
@@ -88,16 +91,32 @@ function TestAudio:draw(game)
     Fonts.default:setScale(1)
     Fonts.default:draw("Audio Test", 320, 20, "center")
 
-    local y = 80
-    for i, item in ipairs(self.items) do
-        local sound = self.sounds[item.id]
-        local status = ""
+    -- Mute status
+    if Audio.muted then
+        love.graphics.setColor(1, 0.3, 0.3)
+        Fonts.default:draw("[MUTED]", 320, 40, "center")
+    end
 
-        if not sound then
+    local y = 70
+    for i = 1 + self.scrollOffset, math.min(#self.items, self.scrollOffset + self.maxVisible) do
+        local item = self.items[i]
+        local status = ""
+        local isPlaying = false
+
+        if item.type == "music" then
+            isPlaying = Audio:isMusicPlaying() and Audio.currentMusic == Audio.music[item.id]
+            if isPlaying then
+                status = " [PLAYING]"
+            end
+        end
+
+        -- Check if sound exists
+        local exists = (item.type == "music" and Audio.music[item.id]) or (item.type == "sfx" and Audio.sfx[item.id])
+
+        if not exists then
             status = " [NOT FOUND]"
             love.graphics.setColor(0.5, 0.5, 0.5)
-        elseif sound:isPlaying() then
-            status = " [PLAYING]"
+        elseif isPlaying then
             love.graphics.setColor(0, 1, 0)
         else
             love.graphics.setColor(1, 1, 1)
@@ -112,16 +131,22 @@ function TestAudio:draw(game)
         y = y + 24
     end
 
+    -- Scroll indicators
+    love.graphics.setColor(0.5, 0.5, 0.5)
+    if self.scrollOffset > 0 then
+        Fonts.default:draw("^ more ^", 320, 58, "center")
+    end
+    if self.scrollOffset + self.maxVisible < #self.items then
+        Fonts.default:draw("v more v", 320, 70 + self.maxVisible * 24, "center")
+    end
+
     -- Instructions
     love.graphics.setColor(0.5, 0.5, 0.5)
-    Fonts.default:draw("Z: Play/Stop | X/Esc: Back", 320, 460, "center")
+    Fonts.default:draw("Z: Play | X: Mute | Esc: Back", 320, 460, "center")
 end
 
 function TestAudio:exit()
-    if self.currentMusic then
-        self.currentMusic:stop()
-    end
-    self.sounds = {}
+    -- Keep music playing if user wants
 end
 
 return TestAudio

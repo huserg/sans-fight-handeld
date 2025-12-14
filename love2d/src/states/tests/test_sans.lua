@@ -32,22 +32,23 @@ local HEAD_FRAMES = {
     {69, 65, 32, 30, "Tired2"},
 }
 
--- BODY frames: {x, y, w, h, name, headOffsetX, headOffsetY}
--- headOffset is relative (0-1) where to attach head on body
+-- BODY frames: {x, y, w, h, name, headOffsetX, headOffsetY, originX, originY}
+-- headOffset: where to attach head (0-1)
+-- origin: anchor point at belt/center level for consistent positioning
 local BODY_FRAMES = {
-    -- HandDown (idle) 64x70
-    {99, 101, 64, 70, "idle0", 0.47, 0.4},
-    {165, 101, 64, 70, "idle1", 0.47, 0.386},
-    {1, 151, 64, 70, "idle2", 0.47, 0.429},
-    {67, 173, 64, 70, "idle3", 0.47, 0.443},
+    -- HandDown (idle) 64x70, belt at ~60% from top
+    {99, 101, 64, 70, "idle0", 0.47, 0.4, 0.5, 0.6},
+    {165, 101, 64, 70, "idle1", 0.47, 0.386, 0.5, 0.6},
+    {1, 151, 64, 70, "idle2", 0.47, 0.429, 0.5, 0.6},
+    {67, 173, 64, 70, "idle3", 0.47, 0.443, 0.5, 0.6},
     -- HandUp 64x70
-    {133, 173, 64, 70, "handup", 0.47, 0.429},
-    -- HandRight 96x48
-    {1, 1, 96, 48, "right0", 0.34, 0.125},
-    {99, 1, 96, 48, "right1", 0.32, 0.125},
-    {1, 51, 96, 48, "right2", 0.31, 0.125},
-    {99, 51, 96, 48, "right3", 0.375, 0.125},
-    {1, 101, 96, 48, "right4", 0.35, 0.125},
+    {133, 173, 64, 70, "handup", 0.47, 0.429, 0.5, 0.6},
+    -- HandRight 96x48, belt at ~50% from top (shorter sprite)
+    {1, 1, 96, 48, "right0", 0.34, 0.125, 0.42, 0.5},
+    {99, 1, 96, 48, "right1", 0.32, 0.125, 0.42, 0.5},
+    {1, 51, 96, 48, "right2", 0.31, 0.125, 0.42, 0.5},
+    {99, 51, 96, 48, "right3", 0.375, 0.125, 0.42, 0.5},
+    {1, 101, 96, 48, "right4", 0.35, 0.125, 0.42, 0.5},
 }
 
 -- TORSO frames: {x, y, w, h, name, headOffsetX, headOffsetY}
@@ -266,11 +267,13 @@ function TestSans:drawFullBody()
         local bodyFrame = BODY_FRAMES[bodyIdx]
         local bodyQuad = love.graphics.newQuad(bodyFrame[1], bodyFrame[2], bodyFrame[3], bodyFrame[4], bodyImgW, bodyImgH)
 
-        -- Body position (centered)
+        -- Body position using origin for consistent anchoring
         bodyW = bodyFrame[3] * scale
         bodyH = bodyFrame[4] * scale
-        bodyX = centerX - bodyW / 2
-        bodyY = centerY - bodyH / 2
+        local originX = bodyFrame[8] or 0.5
+        local originY = bodyFrame[9] or 0.85
+        bodyX = centerX - bodyW * originX
+        bodyY = centerY - bodyH * originY
 
         -- Head position using offsets from body frame
         local headOffsetX = bodyFrame[6] or 0.5
@@ -296,6 +299,8 @@ function TestSans:drawFullBody()
             {name = "Head", x = headX, y = headY, w = headW, h = headH, color = {0, 1, 0}},
             attachPoint = {x = attachX, y = attachY},
             offsets = {x = headOffsetX, y = headOffsetY},
+            origin = {x = originX, y = originY},
+            anchorPoint = {x = centerX, y = centerY},
         }
 
         -- Draw info
@@ -311,11 +316,11 @@ function TestSans:drawFullBody()
         local legsQuad = love.graphics.newQuad(legsFrame[1], legsFrame[2], legsFrame[3], legsFrame[4], legsImgW, legsImgH)
         local torsoQuad = love.graphics.newQuad(torsoFrame[1], torsoFrame[2], torsoFrame[3], torsoFrame[4], torsoImgW, torsoImgH)
 
-        -- Legs at bottom
+        -- Legs positioned so belt aligns with anchor (belt is at top of legs)
         local legsW = legsFrame[3] * scale
         local legsH = legsFrame[4] * scale
         local legsX = centerX - legsW / 2
-        local legsY = centerY + 20
+        local legsY = centerY
 
         -- Torso above legs
         local torsoW = torsoFrame[3] * scale
@@ -348,6 +353,8 @@ function TestSans:drawFullBody()
             {name = "Head", x = headX, y = headY, w = headW, h = headH, color = {0, 1, 0}},
             attachPoint = {x = headAttachX, y = headAttachY},
             torsoAttach = {x = torsoAttachX, y = legsY},
+            anchorPoint = {x = centerX, y = centerY},
+            origin = {x = 0.5, y = "parts"},
         }
 
         -- Draw info
@@ -384,25 +391,35 @@ function TestSans:drawFullBody()
 
         -- Draw offset values
         love.graphics.setColor(1, 1, 1)
-        local dbgY = 380
-        Fonts.default:draw("DEBUG MODE (D to toggle)", 10, dbgY, "left")
+        local dbgY = 365
+        Fonts.default:draw("DEBUG (D)", 10, dbgY, "left")
+        if debugInfo.origin then
+            Fonts.default:draw("Origin: X=" .. debugInfo.origin.x .. " Y=" .. debugInfo.origin.y, 10, dbgY + 15, "left")
+        end
+        if debugInfo.anchorPoint then
+            love.graphics.setColor(1, 0, 1)
+            love.graphics.circle("fill", debugInfo.anchorPoint.x, debugInfo.anchorPoint.y, 6)
+            love.graphics.setColor(1, 1, 1)
+            Fonts.default:draw("Anchor: " .. math.floor(debugInfo.anchorPoint.x) .. "," .. math.floor(debugInfo.anchorPoint.y), 10, dbgY + 30, "left")
+        end
         if debugInfo.offsets then
-            Fonts.default:draw("HeadOffset: X=" .. debugInfo.offsets.x .. " Y=" .. debugInfo.offsets.y, 10, dbgY + 15, "left")
+            Fonts.default:draw("HeadOff: X=" .. debugInfo.offsets.x .. " Y=" .. debugInfo.offsets.y, 10, dbgY + 45, "left")
         end
         if debugInfo.attachPoint then
-            Fonts.default:draw("AttachPt: " .. math.floor(debugInfo.attachPoint.x) .. "," .. math.floor(debugInfo.attachPoint.y), 10, dbgY + 30, "left")
+            Fonts.default:draw("AttachPt: " .. math.floor(debugInfo.attachPoint.x) .. "," .. math.floor(debugInfo.attachPoint.y), 10, dbgY + 60, "left")
         end
 
         love.graphics.setLineWidth(1)
     end
 
-    -- Draw sweat if enabled
+    -- Draw sweat if enabled (on forehead area)
     if self.showSweat then
         local sweatFrame = SWEAT_FRAMES[self.sweatFrame]
         local sweatQuad = love.graphics.newQuad(sweatFrame[1], sweatFrame[2], sweatFrame[3], sweatFrame[4], sweatImgW, sweatImgH)
         local sweatW = sweatFrame[3] * scale
-        local sweatX = headX + (headFrame[3] * scale) / 2 - sweatW / 2
-        local sweatY = headY - 5 * scale
+        local headW = headFrame[3] * scale
+        local sweatX = headX + headW / 2 - sweatW / 2
+        local sweatY = headY
 
         love.graphics.setColor(1, 1, 1)
         love.graphics.draw(self.images.sweat, sweatQuad, sweatX, sweatY, 0, scale, scale)

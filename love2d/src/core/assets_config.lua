@@ -81,6 +81,11 @@ local AssetsConfig = {
         },
         combatZoneBorder = {
             path = "assets/sprites/combatzoneborder.png"
+        },
+        speechBubble = {
+            path = "assets/sprites/speechbubble-sheet0.png",
+            frameWidth = 64,
+            frameHeight = 32
         }
     },
 
@@ -107,6 +112,54 @@ local AssetsConfig = {
             },
             playerDamaged = {
                 path = "assets/audio/playerdamaged.ogg",
+                type = "static"
+            },
+            sansSpeak = {
+                path = "assets/audio/sansspeak.ogg",
+                type = "static"
+            },
+            battleText = {
+                path = "assets/audio/battletext.ogg",
+                type = "static"
+            },
+            boneStab = {
+                path = "assets/audio/bonestab.ogg",
+                type = "static"
+            },
+            gasterBlaster = {
+                path = "assets/audio/gasterblaster.ogg",
+                type = "static"
+            },
+            gasterBlast = {
+                path = "assets/audio/gasterblast.ogg",
+                type = "static"
+            },
+            slam = {
+                path = "assets/audio/slam.ogg",
+                type = "static"
+            },
+            warning = {
+                path = "assets/audio/warning.ogg",
+                type = "static"
+            },
+            flash = {
+                path = "assets/audio/flash.ogg",
+                type = "static"
+            },
+            heartShatter = {
+                path = "assets/audio/heartshatter.ogg",
+                type = "static"
+            },
+            heartSplit = {
+                path = "assets/audio/heartsplit.ogg",
+                type = "static"
+            },
+            playerHeal = {
+                path = "assets/audio/playerheal.ogg",
+                type = "static"
+            },
+            playerFight = {
+                path = "assets/audio/playerfight.ogg",
                 type = "static"
             }
         }

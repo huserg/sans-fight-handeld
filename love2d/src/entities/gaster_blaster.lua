@@ -45,21 +45,31 @@ end
 
 -- States
 local STATE_APPEAR = "appear"
-local STATE_AIM = "aim"
+local STATE_MOVE = "move"
 local STATE_CHARGE = "charge"
 local STATE_FIRE = "fire"
 local STATE_FADE = "fade"
 local STATE_DEAD = "dead"
 
-function GasterBlaster.new(x, y, angle, scale)
+function GasterBlaster.new(startX, startY, targetX, targetY, angle, scale)
     loadSprites()
 
     local self = setmetatable({}, GasterBlaster)
 
-    -- Position and rotation
-    self.x = x
-    self.y = y
-    self.angle = angle or 0
+    -- Start position (for movement)
+    self.startX = startX or targetX
+    self.startY = startY or targetY
+
+    -- Target position
+    self.targetX = targetX
+    self.targetY = targetY
+
+    -- Current position
+    self.x = self.startX
+    self.y = self.startY
+
+    -- Angle in degrees (convert to radians)
+    self.angle = math.rad(angle or 0)
     self.scale = scale or 1
 
     -- State machine
@@ -68,7 +78,7 @@ function GasterBlaster.new(x, y, angle, scale)
 
     -- Timing
     self.appearTime = 0.2
-    self.aimTime = 0.3
+    self.moveTime = 0.3
     self.chargeTime = 0.15
     self.fireTime = 0.5
     self.fadeTime = 0.3
@@ -95,32 +105,45 @@ function GasterBlaster.new(x, y, angle, scale)
     return self
 end
 
-function GasterBlaster:setTiming(appear, aim, charge, fire, fade)
-    self.appearTime = appear or self.appearTime
-    self.aimTime = aim or self.aimTime
-    self.chargeTime = charge or self.chargeTime
-    self.fireTime = fire or self.fireTime
-    self.fadeTime = fade or self.fadeTime
+function GasterBlaster:setTiming(chargeTime, fireTime)
+    -- Combined charge time (appear + move)
+    if chargeTime then
+        self.appearTime = chargeTime * 0.3
+        self.moveTime = chargeTime * 0.7
+    end
+    if fireTime then
+        self.fireTime = fireTime
+    end
 end
 
 function GasterBlaster:update(dt)
     self.stateTimer = self.stateTimer + dt
 
     if self.state == STATE_APPEAR then
-        -- Fade in
+        -- Fade in at start position
         self.alpha = math.min(1, self.stateTimer / self.appearTime)
         self.currentFrame = "closed"
         if self.stateTimer >= self.appearTime then
-            self.state = STATE_AIM
+            self.state = STATE_MOVE
             self.stateTimer = 0
+            self.alpha = 1
         end
 
-    elseif self.state == STATE_AIM then
-        -- Mouth starts opening
+    elseif self.state == STATE_MOVE then
+        -- Move from start to target while opening mouth
+        local progress = math.min(1, self.stateTimer / self.moveTime)
+        -- Ease out
+        local eased = 1 - (1 - progress) * (1 - progress)
+
+        self.x = self.startX + (self.targetX - self.startX) * eased
+        self.y = self.startY + (self.targetY - self.startY) * eased
         self.currentFrame = "opening"
-        if self.stateTimer >= self.aimTime then
+
+        if self.stateTimer >= self.moveTime then
             self.state = STATE_CHARGE
             self.stateTimer = 0
+            self.x = self.targetX
+            self.y = self.targetY
         end
 
     elseif self.state == STATE_CHARGE then

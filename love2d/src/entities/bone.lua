@@ -47,7 +47,7 @@ local function loadSprites()
     sprites.loaded = true
 end
 
-function Bone.new(x, y, length, orientation, isBlue)
+function Bone.new(x, y, length, orientation, color)
     loadSprites()
 
     local self = setmetatable({}, Bone)
@@ -73,8 +73,10 @@ function Bone.new(x, y, length, orientation, isBlue)
     self.vx = 0
     self.vy = 0
 
-    -- Blue bone (only hurts when player is moving)
-    self.isBlue = isBlue or false
+    -- Color: 0=white, 1=blue, 2=orange
+    self.color = color or 0
+    self.isBlue = (self.color == 1)
+    self.isOrange = (self.color == 2)
 
     -- Damage
     self.damage = 1
@@ -133,11 +135,13 @@ function Bone:getHitbox()
 end
 
 function Bone:draw()
-    -- Set color based on type
-    if self.isBlue then
-        love.graphics.setColor(0, 0.7, 1)
+    -- Set color based on type: 0=white, 1=blue, 2=orange
+    if self.color == 1 then
+        love.graphics.setColor(0, 0.7, 1)      -- Blue
+    elseif self.color == 2 then
+        love.graphics.setColor(1, 0.5, 0)      -- Orange
     else
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setColor(1, 1, 1)        -- White
     end
 
     if self.orientation == "vertical" then

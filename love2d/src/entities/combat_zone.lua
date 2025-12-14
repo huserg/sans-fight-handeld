@@ -54,6 +54,24 @@ function CombatZone:resize(x1, y1, x2, y2, instant)
     end
 end
 
+-- Alias for animated resize
+function CombatZone:resizeTo(x1, y1, x2, y2)
+    self:resize(x1, y1, x2, y2, false)
+end
+
+-- Alias for instant resize
+function CombatZone:setSize(x1, y1, x2, y2)
+    self:resize(x1, y1, x2, y2, true)
+end
+
+-- Check if resize animation is complete
+function CombatZone:isResizing()
+    return self.x1 ~= self.targetX1 or
+           self.y1 ~= self.targetY1 or
+           self.x2 ~= self.targetX2 or
+           self.y2 ~= self.targetY2
+end
+
 function CombatZone:setSpeed(speed)
     self.resizeSpeed = speed
 end

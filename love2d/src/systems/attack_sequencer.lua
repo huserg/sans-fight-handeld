@@ -1,31 +1,36 @@
 -- Attack Sequencer
--- Executes attack timelines from CSV data
+-- Executes attack timelines from CSV data using a delay-based program counter.
+-- Each event's time column is a delay *after* the previous executed line,
+-- not an absolute timestamp.
 
 local AttackParser = require("src.systems.attack_parser")
 local Constants = require("src.core.constants")
 local Audio = require("src.systems.audio")
 local Bone = require("src.entities.bone")
 local GasterBlaster = require("src.entities.gaster_blaster")
+local AttackVM = require("src.systems.attack_vm")
 
 local AttackSequencer = {}
 AttackSequencer.__index = AttackSequencer
+
+-- Safety net against malformed CSV programs (0-delay infinite loops)
+local MAX_LINES_PER_FRAME = 2000
 
 function AttackSequencer.new(battle)
     local self = setmetatable({}, AttackSequencer)
 
     self.battle = battle
     self.events = {}
-    self.currentIndex = 1
-    self.timer = 0
+    self.labels = {}
+    self.vm = AttackVM.new()
+    self.pc = 1
+    self.waitTimer = 0
     self.paused = false
     self.tlPaused = false
+    self.pendingResumeOnResize = false
     self.running = false
     self.finished = false
 
-    -- Pending events (events waiting for their time)
-    self.pendingEvents = {}
-
-    -- Command handlers
     self.handlers = {}
     self:registerHandlers()
 
@@ -59,15 +64,15 @@ function AttackSequencer:registerHandlers()
         end
     end
 
-    -- Combat zone resize (animated)
+    -- Combat zone resize (animated); "TLResume" resumes the timeline
+    -- once the resize animation completes
     self.handlers["CombatZoneResize"] = function(params)
         local x1, y1, x2, y2 = params[1], params[2], params[3], params[4]
         local mode = params[5] or ""
         if self.battle.combatZone and x1 and y1 and x2 and y2 then
             self.battle.combatZone:resizeTo(x1, y1, x2, y2)
-            -- Handle TLResume flag
             if mode == "TLResume" then
-                self.tlPaused = false
+                self.pendingResumeOnResize = true
             end
         end
     end
@@ -147,7 +152,6 @@ function AttackSequencer:registerHandlers()
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
 
         if x and y and length then
-            -- Create bone with gap
             local bone = Bone.new(x, y, length, "vertical", false)
 
             if gapSize and gapY then
@@ -210,7 +214,6 @@ function AttackSequencer:registerHandlers()
     self.handlers["Sound"] = function(params)
         local soundName = params[1]
         if soundName then
-            -- Map sound names to audio system names
             local soundMap = {
                 ["Flash"] = "flash",
                 ["Ding"] = "ding",
@@ -293,29 +296,30 @@ function AttackSequencer:registerHandlers()
     end
 end
 
+function AttackSequencer:loadProgram(events, labels)
+    self.events = events
+    self.labels = labels or {}
+    self.vm = AttackVM.new()
+    self.pc = 1
+    self.waitTimer = 0
+    self.paused = false
+    self.tlPaused = false
+    self.pendingResumeOnResize = false
+    self.running = true
+    self.finished = false
+end
+
 function AttackSequencer:loadAttack(name)
     local path = "attacks/" .. name .. ".csv"
-    local events = AttackParser.loadFromFile(path)
+    local events, labels = AttackParser.loadFromFile(path)
 
     if not events then
         print("Failed to load attack: " .. name)
         return false
     end
 
-    self.events = events
-    self.currentIndex = 1
-    self.timer = 0
-    self.paused = false
-    self.tlPaused = false
-    self.running = true
-    self.finished = false
-
+    self:loadProgram(events, labels)
     return true
-end
-
-function AttackSequencer:start()
-    self.running = true
-    self.paused = false
 end
 
 function AttackSequencer:pause()
@@ -336,43 +340,106 @@ function AttackSequencer:update(dt)
         return
     end
 
-    -- Don't advance timer if TL is paused
-    if not self.tlPaused then
-        self.timer = self.timer + dt
+    self:checkPendingResume()
+
+    if self.tlPaused then
+        return
     end
 
-    -- Process events that are ready
-    while self.currentIndex <= #self.events do
-        local event = self.events[self.currentIndex]
+    self.waitTimer = self.waitTimer + dt
 
-        if event.time <= self.timer then
-            self:executeEvent(event)
-            self.currentIndex = self.currentIndex + 1
+    local executed = 0
+    while self.running and not self.finished and not self.tlPaused do
+        local event = self.events[self.pc]
 
-            -- Check if we need to stop
-            if self.finished then
-                break
-            end
-        else
+        if not event then
+            self.finished = true
+            self.running = false
+            break
+        end
+
+        if self.waitTimer < event.time then
+            break
+        end
+
+        self.waitTimer = self.waitTimer - event.time
+        self:executeEvent(event)
+
+        executed = executed + 1
+        if executed >= MAX_LINES_PER_FRAME then
+            print("AttackSequencer: line budget exceeded, possible infinite loop")
             break
         end
     end
+end
 
-    -- Check if all events processed
-    if self.currentIndex > #self.events and not self.finished then
-        self.finished = true
-        self.running = false
+function AttackSequencer:checkPendingResume()
+    if self.pendingResumeOnResize
+        and self.battle.combatZone
+        and not self.battle.combatZone:isResizing() then
+        self.pendingResumeOnResize = false
+        self.tlPaused = false
     end
 end
 
 function AttackSequencer:executeEvent(event)
-    local handler = self.handlers[event.command]
-    if handler then
-        handler(event.params)
-    else
-        -- Unknown command
-        print("Unknown attack command: " .. event.command)
+    local command = event.command
+
+    -- Labels and blank-line placeholders only consume their delay
+    if command == "NOP" or command:sub(1, 1) == ":" then
+        self.pc = self.pc + 1
+        return
     end
+
+    if self.vm:isOp(command) then
+        local jump = self.vm:execute(command, event.params)
+        if jump then
+            self:applyJump(jump)
+        else
+            self.pc = self.pc + 1
+        end
+        return
+    end
+
+    local handler = self.handlers[command]
+    if handler then
+        handler(self:resolveParams(event.params))
+    else
+        print("Unknown attack command: " .. command)
+    end
+    self.pc = self.pc + 1
+end
+
+function AttackSequencer:applyJump(jump)
+    if jump.type == "rel" then
+        self.pc = self.pc + jump.offset
+        return
+    end
+
+    local target = jump.target
+    if type(target) == "number" then
+        self.pc = target
+    else
+        local line = self.labels[target]
+        if line then
+            self.pc = line
+        else
+            print("Unknown jump label: " .. tostring(target))
+            self.pc = #self.events + 1
+        end
+    end
+end
+
+-- Handlers receive concrete values: $vars substituted, empty cells removed
+function AttackSequencer:resolveParams(params)
+    local resolved = {}
+    for i = 1, #params do
+        local value = params[i]
+        if value ~= "" then
+            resolved[i] = self.vm:resolve(value)
+        end
+    end
+    return resolved
 end
 
 function AttackSequencer:isRunning()

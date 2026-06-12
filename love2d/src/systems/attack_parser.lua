@@ -3,9 +3,9 @@
 
 local AttackParser = {}
 
--- Command types that are currently implemented
+-- Commands the sequencer executes (keep in sync with attack_sequencer.lua
+-- handlers and attack_vm.lua opcodes; labels/:Name and NOP are intrinsic)
 AttackParser.implementedCommands = {
-    -- Fully implemented
     "EndAttack",
     "HeartMode",
     "HeartTeleport",
@@ -13,42 +13,65 @@ AttackParser.implementedCommands = {
     "CombatZoneResizeInstant",
     "TLPause",
     "TLResume",
-    -- Partially implemented (bones)
     "BoneV",
     "BoneH",
     "BoneVRepeat",
     "BoneHRepeat",
+    "GasterBlaster",
+    "Sound",
+    "BlackScreen",
+    "SansText",
+    "GetHeartPos",
+    -- VM opcodes
+    "SET", "ADD", "SUB", "MUL", "DIV", "MOD", "FLOOR",
+    "DEG", "RAD", "SIN", "COS", "ANGLE", "RND",
+    "JMPABS", "JMPREL", "JMPZ", "JMPNZ",
+    "JMPE", "JMPNE", "JMPL", "JMPNL", "JMPG", "JMPNG",
 }
 
--- Commands that need implementation
+-- Commands that still need implementation (Plans 2 and 3)
 AttackParser.notImplementedCommands = {
     "SansAnimation",
     "SansHead",
     "SansBody",
-    "SansText",
+    "SansTorso",
+    "SansSweat",
+    "SansX",
+    "SansRepeat",
+    "SansEndRepeat",
     "SansSlam",
-    "BlackScreen",
-    "Sound",
+    "SansSlamDamage",
+    "HeartMaxFallSpeed",
+    "CombatZoneSpeed",
     "BoneStab",
     "SineBones",
-    "GasterBlaster",
     "Platform",
-    "BoneSlideV",
-    "BoneSlideH",
+    "PlatformRepeat",
     "BlueStop",
 }
 
 function AttackParser.parseCSV(content)
     local events = {}
+    local labels = {}
 
-    for line in content:gmatch("[^\r\n]+") do
+    -- One event per physical line: absolute jump targets are line numbers
+    for line in (content .. "\n"):gmatch("([^\n]*)\n") do
+        line = line:gsub("\r$", "")
         local event = AttackParser.parseLine(line)
-        if event then
-            table.insert(events, event)
+            or { time = 0, command = "NOP", params = {} }
+        table.insert(events, event)
+
+        if event.command:sub(1, 1) == ":" then
+            labels[event.command:sub(2)] = #events
         end
     end
 
-    return events
+    -- Trailing blank lines would add dead frames after EndAttack
+    while #events > 0 and events[#events].command == "NOP" do
+        table.remove(events, #events)
+    end
+
+    return events, labels
 end
 
 function AttackParser.parseLine(line)
@@ -96,7 +119,10 @@ function AttackParser.analyzeAttack(events)
     local notImplemented = {}
 
     for _, event in ipairs(events) do
-        usedCommands[event.command] = true
+        local cmd = event.command
+        if cmd ~= "NOP" and cmd:sub(1, 1) ~= ":" then
+            usedCommands[cmd] = true
+        end
     end
 
     -- Check which commands are not implemented

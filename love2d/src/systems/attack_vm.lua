@@ -99,7 +99,11 @@ function AttackVM:isOp(command)
 end
 
 function AttackVM:execute(command, params)
-    return ops[command](self, params)
+    local op = ops[command]
+    if not op then
+        error("AttackVM: unknown opcode '" .. tostring(command) .. "'", 2)
+    end
+    return op(self, params)
 end
 
 return AttackVM

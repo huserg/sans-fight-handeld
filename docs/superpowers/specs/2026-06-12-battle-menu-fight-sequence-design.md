@@ -147,6 +147,43 @@ Parameters per `Documentation/Attacks.md`:
 - `SineBones(Count, Spacing, Speed, Height)`: generated with the existing
   `bone.lua` entity — a series of bone pairs leaving a sine-wave gap.
 
+## Revision 1 (2026-06-12): attack CSV virtual machine
+
+Planning analysis of the 24 attack CSVs revealed that they are small programs,
+not linear timelines. 18 of the 24 sequence attacks (including sans_final) use:
+
+- Variables: read with `$Name`; written by SET/ADD/SUB/MUL/DIV/MOD/FLOOR/DEG/
+  RAD/SIN/COS/ANGLE/RND (see `Documentation/Math.md`)
+- Labels (`:Name`) and ten jump opcodes (JMPABS/JMPREL/JMPZ/JMPNZ/JMPE/JMPNE/
+  JMPL/JMPNL/JMPG/JMPNG, see `Documentation/Jumps.md`); absolute jump targets
+  are 1-based CSV line numbers or label names, `$var` allowed anywhere
+- `GetHeartPos(XVarName, YVarName)` for aimed attacks
+
+The current sequencer supports none of this, and analysis also exposed three
+latent bugs in it:
+
+1. The time column is a DELAY relative to the previous line, not an absolute
+   timestamp (times decrease mid-file in linear attacks). The current
+   absolute-time model plays even the six "ready" attacks with wrong timing.
+2. `TLPause` only freezes the clock but still executes due events; with correct
+   pause semantics, the standard `CombatZoneResize(..., TLResume)` + `TLPause`
+   opening pattern requires TLResume to fire when the resize animation
+   completes (`combatZone:isResizing()`), not instantly as today.
+3. `BoneVRepeat`/`BoneHRepeat` real parameters are
+   (StartX, StartY, Length, Direction, Speed, Count, Spacing); the current
+   implementation misreads Count/Spacing as a gap and spawns a single bone.
+
+Scope consequence: the VM is a hard prerequisite for the full fight sequence.
+The work is split into three plans, each shipping testable software:
+
+1. Sequencer VM: program-counter execution with relative delays, variables,
+   labels, jumps, math opcodes, GetHeartPos, deferred TLResume. Unlocks
+   sans_bonegap2, sans_multi1, sans_randomblaster1/2 in Single mode.
+2. Entities and commands: Platform/PlatformRepeat, BoneStab, SineBones,
+   SansSlam + SansSlamDamage, HeartMaxFallSpeed, CombatZoneSpeed, and the
+   BoneV/HRepeat fix. Unlocks the remaining sequence attacks.
+3. Battle menu, turn system, fight script and endings (the original spec body).
+
 ## Testing
 
 - New test menu entries: battle menu navigation, platform riding (blue heart),

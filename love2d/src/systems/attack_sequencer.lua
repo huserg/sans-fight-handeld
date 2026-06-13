@@ -95,121 +95,68 @@ function AttackSequencer:registerHandlers()
         self.tlPaused = false
     end
 
-    -- Vertical bone: x, y, height, direction, speed, color
+    -- Spawn one bone using the original CSV anchoring: vertical bones take x as
+    -- their center and y as the top edge; horizontal bones take x as the left
+    -- edge and y as the center. Bone itself positions from its center.
+    local function spawnBone(orientation, x, y, length, direction, speed, color)
+        local cx, cy
+        if orientation == "vertical" then
+            cx, cy = x, y + length / 2
+        else
+            cx, cy = x + length / 2, y
+        end
+        local bone = Bone.new(cx, cy, length, orientation, color or 0)
+
+        direction = direction or 0
+        speed = speed or 200
+        local vx, vy = 0, 0
+        if direction == 0 then vx = speed
+        elseif direction == 1 then vy = speed
+        elseif direction == 2 then vx = -speed
+        elseif direction == 3 then vy = -speed end
+
+        bone:setVelocity(vx, vy)
+        bone:setLifetime(10)
+        self.battle:addEntity(bone)
+    end
+
+    -- Vertical bone: x (center), y (top edge), height, direction, speed, color
     self.handlers["BoneV"] = function(params)
-        local x, y, length, direction, speed, color =
-            params[1], params[2], params[3], params[4], params[5], params[6]
+        local x, y, length = params[1], params[2], params[3]
         if x and y and length then
-            -- CSV y is the bone's top edge (C2 sprite hotspot 0,0); Bone uses center
-            local bone = Bone.new(x, y + length / 2, length, "vertical", color or 0)
-            local vx, vy = 0, 0
-            direction = direction or 0
-            speed = speed or 200
-
-            if direction == 0 then
-                vx = speed
-            elseif direction == 1 then
-                vy = speed
-            elseif direction == 2 then
-                vx = -speed
-            elseif direction == 3 then
-                vy = -speed
-            end
-
-            bone:setVelocity(vx, vy)
-            bone:setLifetime(10)
-            self.battle:addEntity(bone)
+            spawnBone("vertical", x, y, length, params[4], params[5], params[6])
         end
     end
 
-    -- Horizontal bone: x, y, width, direction, speed, color
+    -- Horizontal bone: x (left edge), y (center), width, direction, speed, color
     self.handlers["BoneH"] = function(params)
-        local x, y, length, direction, speed, color =
-            params[1], params[2], params[3], params[4], params[5], params[6]
+        local x, y, length = params[1], params[2], params[3]
         if x and y and length then
-            local bone = Bone.new(x, y, length, "horizontal", color or 0)
-            local vx, vy = 0, 0
-            direction = direction or 0
-            speed = speed or 200
-
-            if direction == 0 then
-                vx = speed
-            elseif direction == 1 then
-                vy = speed
-            elseif direction == 2 then
-                vx = -speed
-            elseif direction == 3 then
-                vy = -speed
-            end
-
-            bone:setVelocity(vx, vy)
-            bone:setLifetime(10)
-            self.battle:addEntity(bone)
+            spawnBone("horizontal", x, y, length, params[4], params[5], params[6])
         end
     end
 
-    -- Vertical bone repeat
+    -- Vertical bones repeated across X: startX, y, height, direction, speed, count, spacing
     self.handlers["BoneVRepeat"] = function(params)
-        local x, y, length, direction, speed, gapSize, gapY =
+        local x, y, length, direction, speed, count, spacing =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
-
-        if x and y and length then
-            -- CSV y is the bone's top edge (C2 sprite hotspot 0,0); Bone uses center
-            local bone = Bone.new(x, y + length / 2, length, "vertical", false)
-
-            if gapSize and gapY then
-                bone:setGap(gapY, gapSize)
+        if x and y and length and count then
+            spacing = spacing or 0
+            for n = 0, count - 1 do
+                spawnBone("vertical", x + n * spacing, y, length, direction, speed)
             end
-
-            local vx, vy = 0, 0
-            direction = direction or 0
-            speed = speed or 200
-
-            if direction == 0 then
-                vx = speed
-            elseif direction == 1 then
-                vy = speed
-            elseif direction == 2 then
-                vx = -speed
-            elseif direction == 3 then
-                vy = -speed
-            end
-
-            bone:setVelocity(vx, vy)
-            bone:setLifetime(10)
-            self.battle:addEntity(bone)
         end
     end
 
-    -- Horizontal bone repeat
+    -- Horizontal bones repeated down Y: x, startY, width, direction, speed, count, spacing
     self.handlers["BoneHRepeat"] = function(params)
-        local x, y, length, direction, speed, gapSize, gapX =
+        local x, y, length, direction, speed, count, spacing =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
-
-        if x and y and length then
-            local bone = Bone.new(x, y, length, "horizontal", false)
-
-            if gapSize and gapX then
-                bone:setGap(gapX, gapSize)
+        if x and y and length and count then
+            spacing = spacing or 0
+            for n = 0, count - 1 do
+                spawnBone("horizontal", x, y + n * spacing, length, direction, speed)
             end
-
-            local vx, vy = 0, 0
-            direction = direction or 0
-            speed = speed or 200
-
-            if direction == 0 then
-                vx = speed
-            elseif direction == 1 then
-                vy = speed
-            elseif direction == 2 then
-                vx = -speed
-            elseif direction == 3 then
-                vy = -speed
-            end
-
-            bone:setVelocity(vx, vy)
-            bone:setLifetime(10)
-            self.battle:addEntity(bone)
         end
     end
 

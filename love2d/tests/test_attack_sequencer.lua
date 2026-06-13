@@ -191,3 +191,29 @@ describe("Bone anchoring", function()
         assert_eq(Stubs.FakeBone.spawned[1].y, 315, "center y = top 300 + length/2")
     end)
 end)
+
+describe("Bone repeat", function()
+    it("BoneVRepeat spawns Count vertical bones spaced by Spacing", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,BoneVRepeat,100,200,30,0,120,4,50\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 4, "four bones")
+        assert_eq(Stubs.FakeBone.spawned[1].x, 100, "first at startX")
+        assert_eq(Stubs.FakeBone.spawned[4].x, 250, "fourth at startX + 3*spacing")
+        assert_eq(Stubs.FakeBone.spawned[1].y, 215, "y is top edge + height/2")
+    end)
+
+    it("BoneHRepeat spawns Count horizontal bones spaced down Y", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,BoneHRepeat,130,-10,200,1,300,3,183\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 3, "three bones")
+        assert_eq(Stubs.FakeBone.spawned[1].y, -10, "first at startY (center)")
+        assert_eq(Stubs.FakeBone.spawned[3].y, 356, "third at startY + 2*spacing")
+        assert_eq(Stubs.FakeBone.spawned[1].x, 230, "x is left edge + width/2")
+    end)
+end)

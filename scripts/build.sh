@@ -85,7 +85,7 @@ build_love() {
     rm -f "$output"
 
     ( cd "$src" && zip -9 -r -q "$output" . \
-        -x 'tests/*' 'screenshots/*' 'TODO.md' )
+        -x 'tests/*' 'tools/*' 'screenshots/*' 'TODO.md' )
 
     echo ""
     echo "Build complete for love!"

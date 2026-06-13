@@ -7,6 +7,12 @@ function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.graphics.setBackgroundColor(0, 0, 0)
     Game:load()
+
+    -- Dev-only visual autopilot; inert unless SANS_AUTOPILOT is set and the
+    -- (build-excluded) tools module is present.
+    if os.getenv("SANS_AUTOPILOT") then
+        pcall(require, "tools.autopilot")
+    end
 end
 
 function love.update(dt)

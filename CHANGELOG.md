@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - Unreleased
+
+### Added (Attack VM)
+- Attack CSV virtual machine: variables ($Name), labels, 10 jump opcodes,
+  13 math opcodes, GetHeartPos
+- `src/systems/attack_vm.lua` - Pure-Lua VM module
+- Headless test suite (`love2d/tests/`, run with `lua5.4 tests/run_tests.lua`)
+
+### Fixed
+- Attack timing: the CSV time column is now treated as a relative delay
+  (previously absolute, which broke multi-wave attacks)
+- TLPause now blocks execution; TLResume fires when the combat zone
+  resize completes instead of instantly
+- Attack status indicators now reflect actually implemented commands
+
+### Unlocked Attacks
+- sans_bonegap2, sans_multi1, sans_randomblaster1, sans_randomblaster2
+
 ## [2.0.0] - 2025-12-13
 
 ### Added (Love2D Port)

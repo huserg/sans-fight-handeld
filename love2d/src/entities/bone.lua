@@ -73,6 +73,9 @@ function Bone.new(x, y, length, orientation, color)
     self.vx = 0
     self.vy = 0
 
+    -- Bones are board bullets: clipped to the combat zone when drawn
+    self.clipToZone = true
+
     -- Color: 0=white, 1=blue, 2=orange
     self.color = color or 0
     self.isBlue = (self.color == 1)

@@ -367,9 +367,19 @@ function Battle:draw(game)
     -- Draw combat zone
     self.combatZone:draw()
 
-    -- Draw attack entities (behind heart)
+    -- Draw attack entities (behind heart). Board bullets (bones) are clipped to
+    -- the combat zone; blasters and other entities fire from outside, unclipped.
+    local ix1, iy1, ix2, iy2 = self.combatZone:getInnerBounds()
+    love.graphics.setScissor(ix1, iy1, ix2 - ix1, iy2 - iy1)
     for _, entity in ipairs(self.entities) do
-        if entity.draw then
+        if entity.clipToZone and entity.draw then
+            entity:draw()
+        end
+    end
+    love.graphics.setScissor()
+
+    for _, entity in ipairs(self.entities) do
+        if not entity.clipToZone and entity.draw then
             entity:draw()
         end
     end

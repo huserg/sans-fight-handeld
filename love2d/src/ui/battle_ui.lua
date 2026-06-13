@@ -1,42 +1,44 @@
 -- Battle UI
 -- Bottom UI with action buttons and HP bar (Undertale style)
+-- Layout mirrors the original Construct 2 BattleScreen (640x480 reference)
 
 local Fonts = require("src.ui.fonts")
 
 local BattleUI = {}
 BattleUI.__index = BattleUI
 
--- Button dimensions (each button has 2 frames: normal on top, selected on bottom)
-local BUTTON_W = 57
-local BUTTON_H = 26
+-- Button sprite frame: normal on top, selected directly below (native 112x44)
+local BUTTON_FRAME_W = 112
+local BUTTON_FRAME_H = 44
 
--- Layout constants
-local UI_Y = 398
-local BUTTONS_Y = 430
-local BUTTON_SPACING = 105
-local FIRST_BUTTON_X = 50
+-- Left-edge positions from the original layout (C2 hotspot is top-left)
+local BUTTONS_Y = 432
+local BUTTON_X = { 32, 184, 344, 496 }
+
+-- Bottom info row (name / LV / HP), aligned to the C2 HP layout
+local INFO_Y = 404
+local HP_LABEL_X = 224
+local HP_BAR_X = 256
+local HP_BAR_W = 110
+local HP_BAR_H = 16
 
 function BattleUI.new()
     local self = setmetatable({}, BattleUI)
 
-    -- Load button sprites
-    self.buttons = {
-        { name = "fight", image = nil, x = FIRST_BUTTON_X },
-        { name = "act", image = nil, x = FIRST_BUTTON_X + BUTTON_SPACING },
-        { name = "item", image = nil, x = FIRST_BUTTON_X + BUTTON_SPACING * 2 },
-        { name = "mercy", image = nil, x = FIRST_BUTTON_X + BUTTON_SPACING * 3 }
-    }
+    local names = { "fight", "act", "item", "mercy" }
+    self.buttons = {}
+    for i, name in ipairs(names) do
+        local image = love.graphics.newImage("assets/sprites/ui" .. name .. "-sheet0.png")
+        image:setFilter("nearest", "nearest")
 
-    -- Load images
-    for _, btn in ipairs(self.buttons) do
-        local path = "assets/sprites/ui" .. btn.name .. "-sheet0.png"
-        btn.image = love.graphics.newImage(path)
-        btn.image:setFilter("nearest", "nearest")
-
-        -- Create quads for normal and selected states
-        local imgW, imgH = btn.image:getDimensions()
-        btn.normalQuad = love.graphics.newQuad(0, 0, BUTTON_W, BUTTON_H, imgW, imgH)
-        btn.selectedQuad = love.graphics.newQuad(0, BUTTON_H, BUTTON_W, BUTTON_H, imgW, imgH)
+        local imgW, imgH = image:getDimensions()
+        self.buttons[i] = {
+            name = name,
+            x = BUTTON_X[i],
+            image = image,
+            normalQuad = love.graphics.newQuad(0, 0, BUTTON_FRAME_W, BUTTON_FRAME_H, imgW, imgH),
+            selectedQuad = love.graphics.newQuad(0, BUTTON_FRAME_H, BUTTON_FRAME_W, BUTTON_FRAME_H, imgW, imgH)
+        }
     end
 
     -- Selected button (nil during attack phase)
@@ -56,49 +58,41 @@ end
 function BattleUI:draw(hp, maxHp, karma)
     karma = karma or 0
 
-    -- Draw bottom black bar background
+    -- Black bar behind the bottom UI (sits just below the combat zone)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.rectangle("fill", 0, UI_Y, 640, 80)
+    love.graphics.rectangle("fill", 0, INFO_Y - 8, 640, 480 - (INFO_Y - 8))
 
-    -- Draw player name and LV
+    -- Player name and LV
     love.graphics.setColor(1, 1, 1)
     Fonts.default:setScale(1)
-    Fonts.default:draw(self.playerName, 32, UI_Y + 8, "left")
+    Fonts.default:draw(self.playerName, 32, INFO_Y, "left")
+    Fonts.default:draw("LV " .. self.playerLV, 130, INFO_Y, "left")
 
-    love.graphics.setColor(1, 1, 1)
-    Fonts.default:draw("LV " .. self.playerLV, 110, UI_Y + 8, "left")
+    -- HP label
+    Fonts.default:draw("HP", HP_LABEL_X, INFO_Y, "left")
 
-    -- Draw HP label
-    love.graphics.setColor(1, 1, 1)
-    Fonts.default:draw("HP", 175, UI_Y + 8, "left")
-
-    -- Draw HP bar background (dark red)
-    local barX = 205
-    local barY = UI_Y + 6
-    local barW = 100
-    local barH = 16
-
+    -- HP bar background (dark red)
     love.graphics.setColor(0.3, 0, 0)
-    love.graphics.rectangle("fill", barX, barY, barW, barH)
+    love.graphics.rectangle("fill", HP_BAR_X, INFO_Y, HP_BAR_W, HP_BAR_H)
 
-    -- Draw yellow HP
+    -- Yellow HP
     local hpRatio = math.max(0, (hp - karma)) / maxHp
     love.graphics.setColor(1, 1, 0)
-    love.graphics.rectangle("fill", barX, barY, barW * hpRatio, barH)
+    love.graphics.rectangle("fill", HP_BAR_X, INFO_Y, HP_BAR_W * hpRatio, HP_BAR_H)
 
-    -- Draw karma (purple) if active
+    -- Karma (purple) if active
     if karma > 0 then
         local karmaRatio = karma / maxHp
         love.graphics.setColor(0.6, 0, 0.6)
-        love.graphics.rectangle("fill", barX + barW * hpRatio, barY, barW * karmaRatio, barH)
+        love.graphics.rectangle("fill", HP_BAR_X + HP_BAR_W * hpRatio, INFO_Y, HP_BAR_W * karmaRatio, HP_BAR_H)
     end
 
-    -- Draw HP values
+    -- HP values
     love.graphics.setColor(1, 1, 1)
     local hpText = math.floor(math.max(0, hp - karma)) .. " / " .. maxHp
-    Fonts.default:draw(hpText, barX + barW + 10, UI_Y + 8, "left")
+    Fonts.default:draw(hpText, HP_BAR_X + HP_BAR_W + 12, INFO_Y, "left")
 
-    -- Draw action buttons
+    -- Action buttons at native size
     for i, btn in ipairs(self.buttons) do
         local isSelected = (self.selectedButton == i)
         local quad = isSelected and btn.selectedQuad or btn.normalQuad

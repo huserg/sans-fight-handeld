@@ -24,15 +24,10 @@ AttackParser.implementedCommands = {
     "GetHeartPos",
     "Platform",
     "PlatformRepeat",
-    -- VM opcodes
-    "SET", "ADD", "SUB", "MUL", "DIV", "MOD", "FLOOR",
-    "DEG", "RAD", "SIN", "COS", "ANGLE", "RND",
-    "JMPABS", "JMPREL", "JMPZ", "JMPNZ",
-    "JMPE", "JMPNE", "JMPL", "JMPNL", "JMPG", "JMPNG",
-}
-
--- Commands that still need implementation (Plans 2 and 3)
-AttackParser.notImplementedCommands = {
+    "BoneStab",
+    "SineBones",
+    "HeartMaxFallSpeed",
+    "CombatZoneSpeed",
     "SansAnimation",
     "SansHead",
     "SansBody",
@@ -43,10 +38,15 @@ AttackParser.notImplementedCommands = {
     "SansEndRepeat",
     "SansSlam",
     "SansSlamDamage",
-    "HeartMaxFallSpeed",
-    "CombatZoneSpeed",
-    "BoneStab",
-    "SineBones",
+    -- VM opcodes
+    "SET", "ADD", "SUB", "MUL", "DIV", "MOD", "FLOOR",
+    "DEG", "RAD", "SIN", "COS", "ANGLE", "RND",
+    "JMPABS", "JMPREL", "JMPZ", "JMPNZ",
+    "JMPE", "JMPNE", "JMPL", "JMPNL", "JMPG", "JMPNG",
+}
+
+-- Commands that still need implementation
+AttackParser.notImplementedCommands = {
     "BlueStop",
 }
 

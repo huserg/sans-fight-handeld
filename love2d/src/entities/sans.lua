@@ -60,6 +60,14 @@ local EXPRESSIONS = {
     dark = {2, 2}
 }
 
+-- Map CSV animation names to the port's available sprites
+local HEAD_MAP = {
+    Default = "neutral", LookLeft = "neutral", Wink = "wink",
+    ClosedEyes = "closed", NoEyes = "dark", BlueEye = "wink",
+    Tired1 = "tired", Tired2 = "tired",
+}
+local BODY_MAP = { HandDown = 0, HandUp = 1, HandRight = 5, HandLeft = 7 }
+
 local function loadSprites()
     if sprites.loaded then return end
 
@@ -121,6 +129,11 @@ function Sans.new(x, y)
     -- Idle animation frames
     self.idleFrames = {0, 1}
     self.currentIdleIndex = 1
+    self.animateIdle = true
+
+    -- Horizontal scroll (SansRepeat)
+    self.scrolling = false
+    self.scrollSpeed = 120
 
     return self
 end
@@ -143,16 +156,65 @@ function Sans:setSweat(show)
     self.showSweat = show
 end
 
+-- CSV-facing animation commands -------------------------------------------
+
+function Sans:setHead(name)
+    self.expression = HEAD_MAP[name] or "neutral"
+end
+
+function Sans:setBody(name)
+    local frame = BODY_MAP[name]
+    if frame then
+        self.bodyFrame = frame
+        self.animateIdle = (name == "HandDown")
+    end
+end
+
+-- Sweat level 0-3 (the port only has a single sweat sprite)
+function Sans:setSweatLevel(level)
+    self.showSweat = (tonumber(level) or 0) > 0
+end
+
+function Sans:moveTo(x)
+    self.x = x
+end
+
+function Sans:setAnimation(name)
+    if name == "Tired" then
+        self.expression = "tired"
+        self.animateIdle = true
+    else
+        -- Idle / HeadBob
+        self.animateIdle = true
+    end
+end
+
+function Sans:startScroll()
+    self.scrolling = true
+end
+
+function Sans:stopScroll()
+    self.scrolling = false
+end
+
 function Sans:update(dt)
-    -- Idle animation
-    self.animTimer = self.animTimer + dt
-    if self.animTimer >= self.animSpeed then
-        self.animTimer = 0
-        self.currentIdleIndex = self.currentIdleIndex + 1
-        if self.currentIdleIndex > #self.idleFrames then
-            self.currentIdleIndex = 1
+    -- Idle animation (suspended while a fixed body pose is held)
+    if self.animateIdle then
+        self.animTimer = self.animTimer + dt
+        if self.animTimer >= self.animSpeed then
+            self.animTimer = 0
+            self.currentIdleIndex = self.currentIdleIndex + 1
+            if self.currentIdleIndex > #self.idleFrames then
+                self.currentIdleIndex = 1
+            end
+            self.bodyFrame = self.idleFrames[self.currentIdleIndex]
         end
-        self.bodyFrame = self.idleFrames[self.currentIdleIndex]
+    end
+
+    -- Scroll horizontally across the screen, wrapping around
+    if self.scrolling then
+        self.x = self.x + self.scrollSpeed * dt
+        if self.x > 700 then self.x = -60 end
     end
 end
 
@@ -161,16 +223,19 @@ function Sans:draw()
 
     love.graphics.setColor(1, 1, 1, self.alpha)
 
-    -- Draw body
+    -- Draw body (origin at the current frame's own center, since hand poses
+    -- use a different frame size than the idle frames)
     local bodyQuad = sprites.bodyQuads[self.bodyFrame]
     if bodyQuad then
+        local size = sprites.bodyFrameSizes[self.bodyFrame]
+            or { w = BODY_FRAME_W, h = BODY_FRAME_H }
         love.graphics.draw(
             sprites.body,
             bodyQuad,
             self.x, self.y,
             0,
             SCALE, SCALE,
-            BODY_FRAME_W / 2, BODY_FRAME_H / 2
+            size.w / 2, size.h / 2
         )
     end
 

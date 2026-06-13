@@ -9,6 +9,7 @@ local Audio = require("src.systems.audio")
 local Bone = require("src.entities.bone")
 local GasterBlaster = require("src.entities.gaster_blaster")
 local Platform = require("src.entities.platform")
+local BoneStab = require("src.entities.bone_stab")
 local AttackVM = require("src.systems.attack_vm")
 
 local AttackSequencer = {}
@@ -16,6 +17,39 @@ AttackSequencer.__index = AttackSequencer
 
 -- Safety net against malformed CSV programs (0-delay infinite loops)
 local MAX_LINES_PER_FRAME = 2000
+
+-- Spawn a moving wall of vertical bones that leaves a sine-wave gap.
+-- The wall streams in from one side (sign of spacing) at the given speed.
+local function spawnSineBones(seq, count, spacing, speed, height)
+    local cz = seq.battle.combatZone
+    if not cz then return end
+
+    local x1, y1, x2, y2 = cz:getInnerBounds()
+    local centerY = (y1 + y2) / 2
+    local gap = math.max(height, 24)
+    local amp = math.max(0, (y2 - y1 - gap) / 2 - 6)
+
+    local step = math.abs(spacing)
+    local movingLeft = spacing < 0
+    local vx = movingLeft and -speed or speed
+    local entryX = movingLeft and x2 or x1
+
+    local function addBone(x, top, length)
+        if length <= 8 then return end
+        local bone = Bone.new(x, top + length / 2, length, "vertical", 0)
+        bone:setVelocity(vx, 0)
+        bone:setLifetime(10)
+        seq.battle:addEntity(bone)
+    end
+
+    for n = 0, count - 1 do
+        local colX = movingLeft and (entryX + n * step) or (entryX - n * step)
+        local gapCenter = centerY + amp * math.sin(n * 0.5)
+        addBone(colX, y1, (gapCenter - gap / 2) - y1)            -- top bone
+        local botTop = gapCenter + gap / 2
+        addBone(colX, botTop, y2 - botTop)                       -- bottom bone
+    end
+end
 
 function AttackSequencer.new(battle)
     local self = setmetatable({}, AttackSequencer)
@@ -207,17 +241,37 @@ function AttackSequencer:registerHandlers()
         end
     end
 
-    -- Sans animations (stub for now)
+    -- Sans animations
     self.handlers["SansAnimation"] = function(params)
-        -- Will be implemented with Sans entity
+        if self.battle.sans then self.battle.sans:setAnimation(params[1]) end
     end
 
     self.handlers["SansHead"] = function(params)
-        -- Will be implemented with Sans entity
+        if self.battle.sans then self.battle.sans:setHead(params[1]) end
     end
 
     self.handlers["SansBody"] = function(params)
-        -- Will be implemented with Sans entity
+        if self.battle.sans then self.battle.sans:setBody(params[1]) end
+    end
+
+    self.handlers["SansTorso"] = function(params)
+        -- The port has no separate torso sprite; accepted as a no-op
+    end
+
+    self.handlers["SansSweat"] = function(params)
+        if self.battle.sans then self.battle.sans:setSweatLevel(params[1]) end
+    end
+
+    self.handlers["SansX"] = function(params)
+        if self.battle.sans and params[1] then self.battle.sans:moveTo(params[1]) end
+    end
+
+    self.handlers["SansRepeat"] = function(params)
+        if self.battle.sans then self.battle.sans:startScroll() end
+    end
+
+    self.handlers["SansEndRepeat"] = function(params)
+        if self.battle.sans then self.battle.sans:stopScroll() end
     end
 
     self.handlers["SansText"] = function(params)
@@ -237,17 +291,45 @@ function AttackSequencer:registerHandlers()
     end
 
     self.handlers["SansSlam"] = function(params)
-        -- Will be implemented with Sans entity
+        if self.battle.playerHeart then
+            self.battle.playerHeart:slam(params[1] or 1)
+        end
     end
 
-    -- Bone stab attack
+    self.handlers["SansSlamDamage"] = function(params)
+        if self.battle.playerHeart then
+            self.battle.playerHeart:setSlamDamage(params[1] == 1)
+        end
+    end
+
+    self.handlers["HeartMaxFallSpeed"] = function(params)
+        if self.battle.playerHeart and params[1] then
+            self.battle.playerHeart:setMaxFallSpeed(params[1])
+        end
+    end
+
+    self.handlers["CombatZoneSpeed"] = function(params)
+        if self.battle.combatZone and params[1] then
+            self.battle.combatZone:setSpeed(params[1])
+        end
+    end
+
+    -- Bone stab: a wall of bones pops from one side after a warning
     self.handlers["BoneStab"] = function(params)
-        -- Complex attack, needs separate implementation
+        local direction, distance, warnTime, stayTime =
+            params[1], params[2], params[3], params[4]
+        if direction and self.battle.combatZone then
+            self.battle:addEntity(BoneStab.new(
+                self.battle.combatZone, direction, distance, warnTime, stayTime))
+        end
     end
 
-    -- Sine wave bones
+    -- Sine bones: a moving wall of vertical bones leaving a sine-wave gap
     self.handlers["SineBones"] = function(params)
-        -- Complex attack, needs separate implementation
+        local count, spacing, speed, height =
+            params[1], params[2], params[3], params[4]
+        if not (count and spacing and speed and height) then return end
+        spawnSineBones(self, count, spacing, speed, height)
     end
 
     -- Platform (blue soul mode): x (left), y (top), width, direction, speed, reverse

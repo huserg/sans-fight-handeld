@@ -49,6 +49,14 @@ function PlayerHeart.new(combatZone)
     self.platforms = {}
     self.ridingPlatform = nil
 
+    -- Max fall speed (adjustable per attack via HeartMaxFallSpeed)
+    self.maxFallSpeed = MAX_FALL_SPEED
+
+    -- Slam attack state
+    self.slamming = false
+    self.slamDir = 1
+    self.slamDamage = true
+
     -- Invincibility frames
     self.invincible = false
     self.invincibleTimer = 0
@@ -72,6 +80,45 @@ end
 
 function PlayerHeart:setGravityDirection(direction)
     self.gravityDirection = direction
+end
+
+function PlayerHeart:setMaxFallSpeed(speed)
+    self.maxFallSpeed = speed or self.maxFallSpeed
+end
+
+function PlayerHeart:setSlamDamage(enabled)
+    self.slamDamage = enabled
+end
+
+-- Slam the heart against a wall (direction 0=right, 1=down, 2=left, 3=up)
+function PlayerHeart:slam(direction)
+    self.slamming = true
+    self.slamDir = direction or 1
+    self.vx, self.vy = 0, 0
+end
+
+function PlayerHeart:updateSlam(dt)
+    local s = self.maxFallSpeed
+    local dir = self.slamDir
+    if dir == 0 then self.x = self.x + s * dt
+    elseif dir == 1 then self.y = self.y + s * dt
+    elseif dir == 2 then self.x = self.x - s * dt
+    elseif dir == 3 then self.y = self.y - s * dt end
+
+    local ix1, iy1, ix2, iy2 = self.combatZone:getInnerBounds()
+    local m = self.originY
+    if dir == 0 and self.x + m >= ix2 then self.x = ix2 - m; self.slamming = false
+    elseif dir == 1 and self.y + m >= iy2 then self.y = iy2 - m; self.slamming = false
+    elseif dir == 2 and self.x - m <= ix1 then self.x = ix1 + m; self.slamming = false
+    elseif dir == 3 and self.y - m <= iy1 then self.y = iy1 + m; self.slamming = false end
+
+    if not self.slamming then
+        self.vx, self.vy = 0, 0
+        if dir == 1 then
+            self.gravityDirection = "down"
+            self.grounded = true
+        end
+    end
 end
 
 function PlayerHeart:teleport(x, y)
@@ -119,7 +166,9 @@ function PlayerHeart:update(dt)
     -- Get input
     local moveX, moveY = Input:getMovement()
 
-    if self.mode == Constants.HEARTMODE_RED then
+    if self.slamming then
+        self:updateSlam(dt)
+    elseif self.mode == Constants.HEARTMODE_RED then
         self:updateRedMode(dt, moveX, moveY)
     else
         self:updateBlueMode(dt, moveX, moveY)
@@ -156,14 +205,15 @@ function PlayerHeart:updateBlueMode(dt, moveX, moveY)
     self.vy = self.vy + gravY * dt
 
     -- Clamp fall speed
+    local maxFall = self.maxFallSpeed
     if self.gravityDirection == "down" then
-        self.vy = math.min(self.vy, MAX_FALL_SPEED)
+        self.vy = math.min(self.vy, maxFall)
     elseif self.gravityDirection == "up" then
-        self.vy = math.max(self.vy, -MAX_FALL_SPEED)
+        self.vy = math.max(self.vy, -maxFall)
     elseif self.gravityDirection == "left" then
-        self.vx = math.max(self.vx, -MAX_FALL_SPEED)
+        self.vx = math.max(self.vx, -maxFall)
     elseif self.gravityDirection == "right" then
-        self.vx = math.min(self.vx, MAX_FALL_SPEED)
+        self.vx = math.min(self.vx, maxFall)
     end
 
     -- Jump when grounded

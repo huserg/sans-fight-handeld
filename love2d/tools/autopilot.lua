@@ -18,6 +18,7 @@ local Game = require("src.core.game")
 local Constants = require("src.core.constants")
 
 local attack = os.getenv("SANS_AUTOPILOT") or "sans_bonegap2"
+local mode = os.getenv("SANS_AUTOPILOT_MODE")   -- "normal"/"practice" play the full sequence
 local totalTime = tonumber(os.getenv("SANS_AUTOPILOT_TIME")) or 12
 local shotInterval = tonumber(os.getenv("SANS_AUTOPILOT_INTERVAL")) or 0.75
 local jumpInterval = tonumber(os.getenv("SANS_AUTOPILOT_JUMP")) or 0
@@ -59,15 +60,26 @@ function love.update(_)
 
     if origUpdate then origUpdate(FIXED_DT) end
 
-    -- Jump straight into the chosen single attack once loading reaches the menu
+    -- Enter the battle once loading reaches the menu
     if not started and Game.state == "menu" then
-        Game.simulatorMode = Constants.MODE_SINGLE
-        Game.singleAttack = attack
+        if mode == "normal" then
+            Game.simulatorMode = Constants.MODE_NORMAL
+        elseif mode == "practice" then
+            Game.simulatorMode = Constants.MODE_PRACTICE
+        else
+            Game.simulatorMode = Constants.MODE_SINGLE
+            Game.singleAttack = attack
+        end
         Game:setState("battle")
         started = true
     end
 
     if not started then return end
+
+    -- Keep the soul alive in sequence modes so the whole fight can be reviewed
+    if mode and Game.state == "battle" then
+        Game.hp = Game.maxHp
+    end
 
     elapsed = elapsed + FIXED_DT
     if elapsed >= nextShot then

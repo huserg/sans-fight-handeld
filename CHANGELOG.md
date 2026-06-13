@@ -34,6 +34,14 @@ All notable changes to this project will be documented in this file.
 - Unlocked attacks: bonegap1(fast), boneslideh/v, multi1, platforms1-4(hard),
   platformblaster(fast) (17 of 24 attacks now fully playable)
 
+### Added (Stab, Sine, Sans)
+- BoneStab: wall of bones that pops from a side (warning, stab, retract)
+- SineBones: moving wall of bones with a sine-wave gap
+- Sans animation commands (Head/Body/Torso/Sweat/X/Animation/Repeat)
+- SansSlam heart-slam mechanic with SansSlamDamage toggle
+- HeartMaxFallSpeed and CombatZoneSpeed setters
+- All 24 attacks now report ready and run without errors
+
 ### Unlocked Attacks
 - sans_bonegap2, sans_multi1, sans_randomblaster1, sans_randomblaster2
 

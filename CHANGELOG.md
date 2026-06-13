@@ -17,6 +17,14 @@ All notable changes to this project will be documented in this file.
   resize completes instead of instantly
 - Attack status indicators now reflect actually implemented commands
 
+### Fixed (Layout)
+- Vertical bones are anchored by their top edge (matching the original
+  CSV convention), so they no longer poke above the combat zone
+- Bottom menu buttons use the correct 112x44 frames at the original
+  positions (32/184/344/496), spanning the full width
+- Sans is centered above the combat zone at the original 2x scale, with
+  the head correctly attached to the jacket collar
+
 ### Unlocked Attacks
 - sans_bonegap2, sans_multi1, sans_randomblaster1, sans_randomblaster2
 

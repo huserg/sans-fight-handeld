@@ -32,6 +32,7 @@ function AttackSequencer.new(battle)
     self.finished = false
 
     self.handlers = {}
+    self.rawHandlers = {}
     self:registerHandlers()
 
     return self
@@ -277,12 +278,11 @@ function AttackSequencer:registerHandlers()
     end
 
     -- Stores the heart position into two variables (raw names, no $)
-    self.rawHandlers = self.rawHandlers or {}
     self.rawHandlers["GetHeartPos"] = function(params)
         local heart = self.battle.playerHeart
         if heart and params[1] and params[2] then
-            self.vm.vars[params[1]] = heart.x
-            self.vm.vars[params[2]] = heart.y
+            self.vm:setVar(params[1], heart.x)
+            self.vm:setVar(params[2], heart.y)
         end
     end
 

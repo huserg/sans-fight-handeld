@@ -135,10 +135,12 @@ describe("AttackSequencer VM integration", function()
         local sequencer, battle = makeSequencer(
             "0,GetHeartPos,HX,HY\n" ..
             "0,SansText,$HX,\n" ..
+            "0,SansText,$HY,\n" ..
             "0,EndAttack,,\n")
         battle.playerHeart.x = 123
         battle.playerHeart.y = 456
         sequencer:update(0.016)
         assert_eq(battle.sansTexts[1], 123)
+        assert_eq(battle.sansTexts[2], 456)
     end)
 end)

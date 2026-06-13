@@ -30,6 +30,10 @@ function AttackVM:num(param)
     return tonumber(self:resolve(param)) or 0
 end
 
+function AttackVM:setVar(name, value)
+    self.vars[name] = value
+end
+
 local function jumpAbs(target) return { type = "abs", target = target } end
 local function jumpRel(offset) return { type = "rel", offset = offset } end
 

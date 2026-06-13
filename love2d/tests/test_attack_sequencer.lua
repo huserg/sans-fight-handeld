@@ -144,3 +144,37 @@ describe("AttackSequencer VM integration", function()
         assert_eq(battle.sansTexts[2], 456)
     end)
 end)
+
+describe("Real attack files", function()
+    it("VM-based attacks now report ready status", function()
+        -- Run from love2d/ so attacks/ resolves
+        assert_eq(AttackParser.getAttackStatus("sans_bonegap2"), "ready")
+        assert_eq(AttackParser.getAttackStatus("sans_randomblaster1"), "ready")
+        assert_eq(AttackParser.getAttackStatus("sans_multi1"), "ready")
+    end)
+
+    it("attacks needing Plan 2 entities stay partial", function()
+        assert_eq(AttackParser.getAttackStatus("sans_platforms1"), "partial")
+        assert_eq(AttackParser.getAttackStatus("sans_bonestab1"), "partial")
+    end)
+
+    it("sans_bonegap2 runs to completion without unknown commands", function()
+        Stubs.FakeBone.spawned = {}
+        local battle = Stubs.makeBattle()
+        local sequencer = AttackSequencer.new(battle)
+        assert_true(sequencer:loadAttack("sans_bonegap2"), "load")
+
+        -- The attack starts with CombatZoneResize which sets resizing=true.
+        -- Clear it each frame to simulate the resize animation completing,
+        -- matching real game-engine behaviour (zone:update eventually sets
+        -- resizing=false and TLResume fires via pendingResumeOnResize).
+        local elapsed = 0
+        while not sequencer:isFinished() and elapsed < 120 do
+            battle.combatZone.resizing = false
+            sequencer:update(0.016)
+            elapsed = elapsed + 0.016
+        end
+        assert_true(sequencer:isFinished(), "attack ended within 120s")
+        assert_true(#Stubs.FakeBone.spawned > 0, "bones were spawned")
+    end)
+end)

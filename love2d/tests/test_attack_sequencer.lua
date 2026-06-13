@@ -69,3 +69,76 @@ describe("AttackSequencer pause semantics", function()
         assert_true(sequencer:isFinished())
     end)
 end)
+
+describe("AttackSequencer VM integration", function()
+    it("substitutes $vars into spawn handler params", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,SET,X,250\n" ..
+            "0,SET,Speed,180\n" ..
+            "0,BoneV,$X,300,30,0,$Speed\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 1)
+        assert_eq(Stubs.FakeBone.spawned[1].x, 250)
+        assert_eq(Stubs.FakeBone.spawned[1].vx, 180)
+    end)
+
+    it("runs a counted loop to completion (Loops.csv pattern)", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,SET,LoopVar,5\n" ..
+            "0,:StartLoop,,\n" ..
+            "0,JMPZ,EndLoop,$LoopVar\n" ..
+            "0,SUB,LoopVar,$LoopVar,1\n" ..
+            "0,BoneV,100,300,30,0,180\n" ..
+            "0,JMPABS,StartLoop,\n" ..
+            "0,:EndLoop,,\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 5, "loop body ran 5 times")
+        assert_true(sequencer:isFinished())
+    end)
+
+    it("respects delays on lines reached by backward jumps", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,SET,LoopVar,2\n" ..
+            "0,:StartLoop,,\n" ..
+            "0,JMPZ,EndLoop,$LoopVar\n" ..
+            "0,SUB,LoopVar,$LoopVar,1\n" ..
+            "0.5,BoneV,100,300,30,0,180\n" ..
+            "0,JMPABS,StartLoop,\n" ..
+            "0,:EndLoop,,\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 0, "first bone waits its delay")
+        sequencer:update(0.5)
+        assert_eq(#Stubs.FakeBone.spawned, 1)
+        sequencer:update(0.5)
+        assert_eq(#Stubs.FakeBone.spawned, 2)
+        assert_true(sequencer:isFinished())
+    end)
+
+    it("jumps to absolute numeric line targets", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,JMPABS,3,\n" ..
+            "0,BoneV,100,300,30,0,180\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 0, "line 2 skipped by jump to line 3")
+        assert_true(sequencer:isFinished())
+    end)
+
+    it("GetHeartPos stores the heart position into named vars", function()
+        local sequencer, battle = makeSequencer(
+            "0,GetHeartPos,HX,HY\n" ..
+            "0,SansText,$HX,\n" ..
+            "0,EndAttack,,\n")
+        battle.playerHeart.x = 123
+        battle.playerHeart.y = 456
+        sequencer:update(0.016)
+        assert_eq(battle.sansTexts[1], 123)
+    end)
+end)

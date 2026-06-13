@@ -276,6 +276,16 @@ function AttackSequencer:registerHandlers()
         end
     end
 
+    -- Stores the heart position into two variables (raw names, no $)
+    self.rawHandlers = self.rawHandlers or {}
+    self.rawHandlers["GetHeartPos"] = function(params)
+        local heart = self.battle.playerHeart
+        if heart and params[1] and params[2] then
+            self.vm.vars[params[1]] = heart.x
+            self.vm.vars[params[2]] = heart.y
+        end
+    end
+
     self.handlers["SansSlam"] = function(params)
         -- Will be implemented with Sans entity
     end
@@ -398,6 +408,13 @@ function AttackSequencer:executeEvent(event)
         else
             self.pc = self.pc + 1
         end
+        return
+    end
+
+    local rawHandler = self.rawHandlers and self.rawHandlers[command]
+    if rawHandler then
+        rawHandler(event.params)
+        self.pc = self.pc + 1
         return
     end
 

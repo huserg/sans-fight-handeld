@@ -22,6 +22,8 @@ AttackParser.implementedCommands = {
     "BlackScreen",
     "SansText",
     "GetHeartPos",
+    "Platform",
+    "PlatformRepeat",
     -- VM opcodes
     "SET", "ADD", "SUB", "MUL", "DIV", "MOD", "FLOOR",
     "DEG", "RAD", "SIN", "COS", "ANGLE", "RND",
@@ -45,8 +47,6 @@ AttackParser.notImplementedCommands = {
     "CombatZoneSpeed",
     "BoneStab",
     "SineBones",
-    "Platform",
-    "PlatformRepeat",
     "BlueStop",
 }
 

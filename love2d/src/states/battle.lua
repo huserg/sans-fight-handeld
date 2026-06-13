@@ -168,7 +168,8 @@ function Battle:update(dt, game)
     -- Update combat zone
     self.combatZone:update(dt)
 
-    -- Update player heart
+    -- Update player heart (with the current platforms for blue-mode landing)
+    self.playerHeart.platforms = self:getPlatforms()
     self.playerHeart:update(dt)
 
     -- Update Sans
@@ -350,6 +351,17 @@ function Battle:updateTestSpawner(dt)
         bone:setLifetime(5)
         self:addEntity(bone)
     end
+end
+
+-- Collect active platform entities (for blue-mode landing)
+function Battle:getPlatforms()
+    local platforms = {}
+    for _, entity in ipairs(self.entities) do
+        if entity.isPlatform then
+            table.insert(platforms, entity)
+        end
+    end
+    return platforms
 end
 
 function Battle:draw(game)

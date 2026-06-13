@@ -45,6 +45,10 @@ function PlayerHeart.new(combatZone)
     self.grounded = false
     self.gravityDirection = "down"
 
+    -- Platforms the heart can land on (set by the battle each frame)
+    self.platforms = {}
+    self.ridingPlatform = nil
+
     -- Invincibility frames
     self.invincible = false
     self.invincibleTimer = 0
@@ -182,6 +186,47 @@ function PlayerHeart:updateBlueMode(dt, moveX, moveY)
 
     -- Check ground collision
     self:checkGroundCollision()
+    self:checkPlatforms(dt)
+end
+
+-- Land on and ride moving platforms (downward gravity only)
+function PlayerHeart:checkPlatforms(dt)
+    if self.gravityDirection ~= "down" then
+        self.ridingPlatform = nil
+        return
+    end
+
+    -- Jumping up: release any platform and let the jump play out
+    if self.vy < 0 then
+        self.ridingPlatform = nil
+        return
+    end
+
+    -- Keep riding the current platform, carrying its horizontal motion
+    local riding = self.ridingPlatform
+    if riding and not riding.dead
+        and self.x >= riding.x and self.x <= riding.x + riding.width then
+        self.x = self.x + riding.vx * dt
+        self.y = riding.y - self.originY
+        self.vy = 0
+        self.grounded = true
+        return
+    end
+    self.ridingPlatform = nil
+
+    -- Land when the heart's bottom crosses a platform top this frame
+    local bottom = self.y + self.originY
+    local prevBottom = bottom - self.vy * dt
+    for _, p in ipairs(self.platforms) do
+        if not p.dead and self.x >= p.x and self.x <= p.x + p.width
+            and bottom >= p.y and prevBottom <= p.y + 6 then
+            self.y = p.y - self.originY
+            self.vy = 0
+            self.grounded = true
+            self.ridingPlatform = p
+            return
+        end
+    end
 end
 
 function PlayerHeart:checkGroundCollision()

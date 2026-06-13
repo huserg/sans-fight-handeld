@@ -8,6 +8,7 @@ local Constants = require("src.core.constants")
 local Audio = require("src.systems.audio")
 local Bone = require("src.entities.bone")
 local GasterBlaster = require("src.entities.gaster_blaster")
+local Platform = require("src.entities.platform")
 local AttackVM = require("src.systems.attack_vm")
 
 local AttackSequencer = {}
@@ -249,9 +250,26 @@ function AttackSequencer:registerHandlers()
         -- Complex attack, needs separate implementation
     end
 
-    -- Platform (for blue soul mode)
+    -- Platform (blue soul mode): x (left), y (top), width, direction, speed, reverse
     self.handlers["Platform"] = function(params)
-        -- Needs platform entity implementation
+        local x, y, width = params[1], params[2], params[3]
+        if x and y and width then
+            self.battle:addEntity(
+                Platform.new(x, y, width, params[4], params[5], params[6]))
+        end
+    end
+
+    -- Many platforms across X: startX, startY, width, direction, speed, count, spacing
+    self.handlers["PlatformRepeat"] = function(params)
+        local x, y, width, direction, speed, count, spacing =
+            params[1], params[2], params[3], params[4], params[5], params[6], params[7]
+        if x and y and width and count then
+            spacing = spacing or 0
+            for n = 0, count - 1 do
+                self.battle:addEntity(
+                    Platform.new(x + n * spacing, y, width, direction, speed))
+            end
+        end
     end
 end
 

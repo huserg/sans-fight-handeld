@@ -43,10 +43,10 @@ describe("AttackParser", function()
     end)
 
     it("still reports genuinely missing commands", function()
-        local csv = "0,Platform,100,200,60,0,120,0\n0,EndAttack,,\n"
+        local csv = "0,BoneStab,100,200,60,0,120,0\n0,EndAttack,,\n"
         local events = AttackParser.parseCSV(csv)
         local analysis = AttackParser.analyzeAttack(events)
         assert_true(not analysis.isReady)
-        assert_true(analysis.notImplemented["Platform"])
+        assert_true(analysis.notImplemented["BoneStab"])
     end)
 end)

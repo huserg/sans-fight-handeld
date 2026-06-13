@@ -24,6 +24,15 @@ All notable changes to this project will be documented in this file.
   positions (32/184/344/496), spanning the full width
 - Sans is centered above the combat zone at the original 2x scale, with
   the head correctly attached to the jacket collar
+- Bone bullets are clipped to the combat zone instead of spilling past it
+
+### Added (Bones & Platforms)
+- BoneVRepeat/BoneHRepeat now spawn Count bones spaced by Spacing (they
+  previously crashed by calling a nonexistent setGap)
+- Platform and PlatformRepeat: moving platforms the heart can land on and
+  ride in blue mode
+- Unlocked attacks: bonegap1(fast), boneslideh/v, multi1, platforms1-4(hard),
+  platformblaster(fast) (17 of 24 attacks now fully playable)
 
 ### Unlocked Attacks
 - sans_bonegap2, sans_multi1, sans_randomblaster1, sans_randomblaster2

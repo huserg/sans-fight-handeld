@@ -413,24 +413,29 @@ end
 function AttackSequencer:applyJump(jump)
     if jump.type == "rel" then
         self.pc = self.pc + jump.offset
-        return
+    else
+        local target = jump.target
+        if type(target) == "number" then
+            self.pc = target
+        else
+            local line = self.labels[target]
+            if line then
+                self.pc = line
+            else
+                print("Unknown jump label: " .. tostring(target))
+                self.pc = #self.events + 1
+            end
+        end
     end
 
-    local target = jump.target
-    if type(target) == "number" then
-        self.pc = target
-    else
-        local line = self.labels[target]
-        if line then
-            self.pc = line
-        else
-            print("Unknown jump label: " .. tostring(target))
-            self.pc = #self.events + 1
-        end
+    if self.pc < 1 then
+        print("AttackSequencer: jump target out of range, stopping program")
+        self.pc = #self.events + 1
     end
 end
 
--- Handlers receive concrete values: $vars substituted, empty cells removed
+-- Handlers receive concrete values: $vars substituted, empty cells left
+-- nil so positional indexing stays aligned with the CSV columns
 function AttackSequencer:resolveParams(params)
     local resolved = {}
     for i = 1, #params do

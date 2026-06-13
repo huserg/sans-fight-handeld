@@ -44,6 +44,9 @@ local HEAD_FRAME_H = 32
 local HEAD_COLS = 3
 local HEAD_ROWS = 3
 
+-- The original C2 SansBody is displayed at 2x the native sprite size
+local SCALE = 2
+
 -- Expression names mapped to grid positions (col, row)
 local EXPRESSIONS = {
     neutral = {0, 0},
@@ -166,7 +169,7 @@ function Sans:draw()
             bodyQuad,
             self.x, self.y,
             0,
-            1, 1,
+            SCALE, SCALE,
             BODY_FRAME_W / 2, BODY_FRAME_H / 2
         )
     end
@@ -175,9 +178,9 @@ function Sans:draw()
     if self.showSweat then
         love.graphics.draw(
             sprites.sweat,
-            self.x - 20, self.y - 30,
+            self.x - 20 * SCALE, self.y - 30 * SCALE,
             0,
-            1, 1
+            SCALE, SCALE
         )
     end
 end
@@ -186,9 +189,12 @@ function Sans:drawHead(x, y, scale)
     -- Head position: body top - half head height
     -- Body center is at self.y, body is 70px tall, so top is at self.y - 35
     -- Head is 32px tall, center it just above body top
+    -- Attach the skull to the jacket collar: the body frame top is the raised
+    -- arm, not the neck, so anchor relative to the collar (~20 native px above
+    -- the body center) rather than the frame top.
     x = x or self.x
-    y = y or self.y - BODY_FRAME_H / 2 - HEAD_FRAME_H / 2 + 8
-    scale = scale or 1
+    y = y or self.y - 20 * SCALE
+    scale = scale or SCALE
 
     love.graphics.setColor(1, 1, 1, self.alpha)
 

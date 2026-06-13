@@ -49,8 +49,8 @@ function Battle:enter(game)
     -- Create player heart
     self.playerHeart = PlayerHeart.new(self.combatZone)
 
-    -- Create Sans (positioned top-left)
-    self.sans = Sans.new(100, 170)
+    -- Create Sans (centered above the combat zone, like the original)
+    self.sans = Sans.new(320, 168)
 
     -- Create Battle UI
     self.battleUI = BattleUI.new()

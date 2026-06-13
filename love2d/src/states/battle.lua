@@ -172,6 +172,15 @@ function Battle:update(dt, game)
     self.playerHeart.platforms = self:getPlatforms()
     self.playerHeart:update(dt)
 
+    -- Slam impact damage (when SansSlamDamage was enabled)
+    if self.playerHeart.pendingSlamDamage then
+        self.playerHeart.pendingSlamDamage = false
+        if self.playerHeart:damage(3) then
+            game.hp = game.hp - 3
+            Audio:playSfx("playerDamaged")
+        end
+    end
+
     -- Update Sans
     self.sans:update(dt)
 

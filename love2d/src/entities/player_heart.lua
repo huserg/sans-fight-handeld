@@ -55,7 +55,8 @@ function PlayerHeart.new(combatZone)
     -- Slam attack state
     self.slamming = false
     self.slamDir = 1
-    self.slamDamage = true
+    self.slamDamage = false
+    self.pendingSlamDamage = false
 
     -- Invincibility frames
     self.invincible = false
@@ -90,6 +91,18 @@ function PlayerHeart:setSlamDamage(enabled)
     self.slamDamage = enabled
 end
 
+-- Reset per-attack physics state so values do not leak between attacks
+function PlayerHeart:resetForAttack()
+    self.maxFallSpeed = MAX_FALL_SPEED
+    self.vx, self.vy = 0, 0
+    self.grounded = false
+    self.gravityDirection = "down"
+    self.ridingPlatform = nil
+    self.slamming = false
+    self.slamDamage = false
+    self.pendingSlamDamage = false
+end
+
 -- Slam the heart against a wall (direction 0=right, 1=down, 2=left, 3=up)
 function PlayerHeart:slam(direction)
     self.slamming = true
@@ -100,20 +113,31 @@ end
 function PlayerHeart:updateSlam(dt)
     local s = self.maxFallSpeed
     local dir = self.slamDir
+
+    -- A zero/negative slam speed would never reach a wall: end immediately
+    -- so the heart can't freeze (e.g. sans_final sets MaxFallSpeed 0 first).
+    if s <= 0 then
+        self.slamming = false
+        self.vx, self.vy = 0, 0
+        return
+    end
+
     if dir == 0 then self.x = self.x + s * dt
     elseif dir == 1 then self.y = self.y + s * dt
     elseif dir == 2 then self.x = self.x - s * dt
     elseif dir == 3 then self.y = self.y - s * dt end
 
     local ix1, iy1, ix2, iy2 = self.combatZone:getInnerBounds()
-    local m = self.originY
-    if dir == 0 and self.x + m >= ix2 then self.x = ix2 - m; self.slamming = false
-    elseif dir == 1 and self.y + m >= iy2 then self.y = iy2 - m; self.slamming = false
-    elseif dir == 2 and self.x - m <= ix1 then self.x = ix1 + m; self.slamming = false
-    elseif dir == 3 and self.y - m <= iy1 then self.y = iy1 + m; self.slamming = false end
+    local mx, my = self.originX, self.originY
+    if dir == 0 and self.x + mx >= ix2 then self.x = ix2 - mx; self.slamming = false
+    elseif dir == 1 and self.y + my >= iy2 then self.y = iy2 - my; self.slamming = false
+    elseif dir == 2 and self.x - mx <= ix1 then self.x = ix1 + mx; self.slamming = false
+    elseif dir == 3 and self.y - my <= iy1 then self.y = iy1 + my; self.slamming = false end
 
     if not self.slamming then
         self.vx, self.vy = 0, 0
+        -- Impact damage if SansSlamDamage was enabled (battle applies it)
+        if self.slamDamage then self.pendingSlamDamage = true end
         if dir == 1 then
             self.gravityDirection = "down"
             self.grounded = true

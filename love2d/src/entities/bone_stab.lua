@@ -28,7 +28,8 @@ function BoneStab.new(combatZone, direction, distance, warnTime, stayTime)
     self.direction = direction or 0
     self.distance = distance or 24
     self.warnTime = warnTime or 0.4
-    self.stayTime = stayTime or 0.3
+    -- Floor the stay so a stayTime of 0 still produces a brief, dangerous jab
+    self.stayTime = math.max(stayTime or 0.3, 0.12)
     self.timer = 0
     self.dead = false
     self.damage = 1

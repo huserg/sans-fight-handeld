@@ -366,6 +366,11 @@ function AttackSequencer:loadProgram(events, labels)
     self.pendingResumeOnResize = false
     self.running = true
     self.finished = false
+
+    -- Reset per-attack heart physics so values don't leak between attacks
+    if self.battle.playerHeart and self.battle.playerHeart.resetForAttack then
+        self.battle.playerHeart:resetForAttack()
+    end
 end
 
 function AttackSequencer:loadAttack(name)

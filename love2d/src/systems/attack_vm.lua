@@ -46,7 +46,11 @@ ops["ADD"] = function(self, p) self.vars[p[1]] = self:num(p[2]) + self:num(p[3])
 ops["SUB"] = function(self, p) self.vars[p[1]] = self:num(p[2]) - self:num(p[3]) end
 ops["MUL"] = function(self, p) self.vars[p[1]] = self:num(p[2]) * self:num(p[3]) end
 ops["DIV"] = function(self, p) self.vars[p[1]] = self:num(p[2]) / self:num(p[3]) end
-ops["MOD"] = function(self, p) self.vars[p[1]] = self:num(p[2]) % self:num(p[3]) end
+-- Guarded so a zero divisor stores 0 instead of raising a Lua runtime error
+ops["MOD"] = function(self, p)
+    local divisor = self:num(p[3])
+    self.vars[p[1]] = divisor ~= 0 and (self:num(p[2]) % divisor) or 0
+end
 ops["FLOOR"] = function(self, p) self.vars[p[1]] = math.floor(self:num(p[2])) end
 ops["DEG"] = function(self, p) self.vars[p[1]] = math.deg(self:num(p[2])) end
 ops["RAD"] = function(self, p) self.vars[p[1]] = math.rad(self:num(p[2])) end

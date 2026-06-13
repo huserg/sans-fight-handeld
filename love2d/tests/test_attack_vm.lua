@@ -39,6 +39,12 @@ describe("AttackVM variables and math", function()
         assert_eq(vm:resolve("$R"), 1)
     end)
 
+    it("MOD by zero stores 0 instead of crashing", function()
+        local vm = AttackVM.new()
+        vm:execute("MOD", { "R", 7, 0 })
+        assert_eq(vm:resolve("$R"), 0)
+    end)
+
     it("FLOOR truncates down", function()
         local vm = AttackVM.new()
         vm:execute("FLOOR", { "F", 3.9 })

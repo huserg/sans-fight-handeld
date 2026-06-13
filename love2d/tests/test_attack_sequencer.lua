@@ -178,3 +178,16 @@ describe("Real attack files", function()
         assert_true(#Stubs.FakeBone.spawned > 0, "bones were spawned")
     end)
 end)
+
+describe("Bone anchoring", function()
+    it("anchors vertical bones by their top edge (CSV y is the top, x stays center)", function()
+        Stubs.FakeBone.spawned = {}
+        local sequencer = makeSequencer(
+            "0,BoneV,200,300,30,0,180\n" ..
+            "0,EndAttack,,\n")
+        sequencer:update(0.016)
+        assert_eq(#Stubs.FakeBone.spawned, 1)
+        assert_eq(Stubs.FakeBone.spawned[1].x, 200, "x stays the center")
+        assert_eq(Stubs.FakeBone.spawned[1].y, 315, "center y = top 300 + length/2")
+    end)
+end)

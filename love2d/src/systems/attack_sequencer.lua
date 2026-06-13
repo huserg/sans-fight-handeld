@@ -100,7 +100,8 @@ function AttackSequencer:registerHandlers()
         local x, y, length, direction, speed, color =
             params[1], params[2], params[3], params[4], params[5], params[6]
         if x and y and length then
-            local bone = Bone.new(x, y, length, "vertical", color or 0)
+            -- CSV y is the bone's top edge (C2 sprite hotspot 0,0); Bone uses center
+            local bone = Bone.new(x, y + length / 2, length, "vertical", color or 0)
             local vx, vy = 0, 0
             direction = direction or 0
             speed = speed or 200
@@ -153,7 +154,8 @@ function AttackSequencer:registerHandlers()
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
 
         if x and y and length then
-            local bone = Bone.new(x, y, length, "vertical", false)
+            -- CSV y is the bone's top edge (C2 sprite hotspot 0,0); Bone uses center
+            local bone = Bone.new(x, y + length / 2, length, "vertical", false)
 
             if gapSize and gapY then
                 bone:setGap(gapY, gapSize)

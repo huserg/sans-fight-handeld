@@ -6,18 +6,22 @@ local Fonts = require("src.ui.fonts")
 local HpBar = {}
 HpBar.__index = HpBar
 
--- Layout constants
-local BAR_X = 30
-local BAR_Y = 400
+-- Default layout constants (standalone / test_hp usage)
+local DEFAULT_BAR_X = 30
+local DEFAULT_BAR_Y = 400
 local BAR_WIDTH = 120
 local BAR_HEIGHT = 21
 local BAR_INNER_OFFSET = 2
 local LABEL_OFFSET_X = -2
 local VALUE_OFFSET_X = 140
 
-function HpBar.new()
+-- Optional x/y override so callers (e.g. battle_ui) can position the bar
+-- at a custom location without duplicating drawing logic.
+function HpBar.new(x, y)
     local self = setmetatable({}, HpBar)
 
+    self.barX = x or DEFAULT_BAR_X
+    self.barY = y or DEFAULT_BAR_Y
     self.displayHp = 0
     self.displayKarma = 0
 
@@ -39,16 +43,19 @@ end
 function HpBar:draw(currentHp, maxHp, karma)
     karma = karma or 0
 
+    local bx = self.barX
+    local by = self.barY
+
     -- Draw "HP" label
     love.graphics.setColor(1, 1, 1)
     Fonts.battle:setScale(2)
-    Fonts.battle:draw("HP", BAR_X + LABEL_OFFSET_X, BAR_Y + 5, "left")
+    Fonts.battle:draw("HP", bx + LABEL_OFFSET_X, by + 5, "left")
 
-    -- Draw bar background (red = missing HP)
+    -- Draw bar background (dark red = missing HP)
     love.graphics.setColor(0.5, 0, 0)
     love.graphics.rectangle("fill",
-        BAR_X + 20,
-        BAR_Y + BAR_INNER_OFFSET,
+        bx + 20,
+        by + BAR_INNER_OFFSET,
         BAR_WIDTH,
         BAR_HEIGHT - BAR_INNER_OFFSET * 2
     )
@@ -59,36 +66,36 @@ function HpBar:draw(currentHp, maxHp, karma)
     local yellowWidth = BAR_WIDTH * hpRatio
     local purpleWidth = BAR_WIDTH * karmaRatio
 
-    -- Draw yellow HP bar
+    -- Draw yellow HP segment
     love.graphics.setColor(1, 1, 0)
     love.graphics.rectangle("fill",
-        BAR_X + 20,
-        BAR_Y + BAR_INNER_OFFSET,
+        bx + 20,
+        by + BAR_INNER_OFFSET,
         yellowWidth,
         BAR_HEIGHT - BAR_INNER_OFFSET * 2
     )
 
-    -- Draw purple karma bar (overlaps yellow from right)
+    -- Draw purple karma segment immediately right of yellow
     if karma > 0 then
         love.graphics.setColor(0.6, 0, 0.6)
         love.graphics.rectangle("fill",
-            BAR_X + 20 + yellowWidth,
-            BAR_Y + BAR_INNER_OFFSET,
+            bx + 20 + yellowWidth,
+            by + BAR_INNER_OFFSET,
             purpleWidth,
             BAR_HEIGHT - BAR_INNER_OFFSET * 2
         )
     end
 
-    -- Draw HP text
+    -- Draw HP value text
     love.graphics.setColor(1, 1, 1)
     local hpText = tostring(math.floor(math.max(0, currentHp - karma))) .. " / " .. tostring(maxHp)
     Fonts.battle:setScale(2)
-    Fonts.battle:draw(hpText, BAR_X + VALUE_OFFSET_X, BAR_Y + 5, "left")
+    Fonts.battle:draw(hpText, bx + VALUE_OFFSET_X, by + 5, "left")
 
-    -- Draw KR label if karma active
+    -- Draw KR label next to HP values when karma is active
     if karma > 0 then
         love.graphics.setColor(0.6, 0, 0.6)
-        Fonts.battle:draw("KR", BAR_X + VALUE_OFFSET_X + 80, BAR_Y + 5, "left")
+        Fonts.battle:draw("KR", bx + VALUE_OFFSET_X + 80, by + 5, "left")
     end
 end
 

@@ -3,6 +3,7 @@
 -- Layout mirrors the original Construct 2 BattleScreen (640x480 reference)
 
 local Fonts = require("src.ui.fonts")
+local HpBar = require("src.ui.hp_bar")
 
 local BattleUI = {}
 BattleUI.__index = BattleUI
@@ -15,12 +16,12 @@ local BUTTON_FRAME_H = 44
 local BUTTONS_Y = 432
 local BUTTON_X = { 32, 184, 344, 496 }
 
--- Bottom info row (name / LV / HP), aligned to the C2 HP layout
+-- Bottom info row (name / LV), aligned to the C2 layout
 local INFO_Y = 404
-local HP_LABEL_X = 224
-local HP_BAR_X = 256
-local HP_BAR_W = 110
-local HP_BAR_H = 16
+
+-- HP bar position: bx+20 aligns to original HP_BAR_X (256), by matches INFO_Y (404)
+local HP_BAR_ORIGIN_X = 236
+local HP_BAR_ORIGIN_Y = 404
 
 function BattleUI.new()
     local self = setmetatable({}, BattleUI)
@@ -48,11 +49,19 @@ function BattleUI.new()
     self.playerName = "CHARA"
     self.playerLV = 1
 
+    -- Delegate HP bar rendering to the shared HpBar component
+    self.hpBar = HpBar.new(HP_BAR_ORIGIN_X, HP_BAR_ORIGIN_Y)
+
     return self
 end
 
 function BattleUI:setSelectedButton(index)
     self.selectedButton = index
+end
+
+-- Update smooth HP animation; call each frame before draw.
+function BattleUI:update(dt, hp, maxHp, karma)
+    self.hpBar:update(dt, hp, maxHp, karma or 0)
 end
 
 function BattleUI:draw(hp, maxHp, karma)
@@ -68,29 +77,8 @@ function BattleUI:draw(hp, maxHp, karma)
     Fonts.default:draw(self.playerName, 32, INFO_Y, "left")
     Fonts.default:draw("LV " .. self.playerLV, 130, INFO_Y, "left")
 
-    -- HP label
-    Fonts.default:draw("HP", HP_LABEL_X, INFO_Y, "left")
-
-    -- HP bar background (dark red)
-    love.graphics.setColor(0.3, 0, 0)
-    love.graphics.rectangle("fill", HP_BAR_X, INFO_Y, HP_BAR_W, HP_BAR_H)
-
-    -- Yellow HP
-    local hpRatio = math.max(0, (hp - karma)) / maxHp
-    love.graphics.setColor(1, 1, 0)
-    love.graphics.rectangle("fill", HP_BAR_X, INFO_Y, HP_BAR_W * hpRatio, HP_BAR_H)
-
-    -- Karma (purple) if active
-    if karma > 0 then
-        local karmaRatio = karma / maxHp
-        love.graphics.setColor(0.6, 0, 0.6)
-        love.graphics.rectangle("fill", HP_BAR_X + HP_BAR_W * hpRatio, INFO_Y, HP_BAR_W * karmaRatio, HP_BAR_H)
-    end
-
-    -- HP values
-    love.graphics.setColor(1, 1, 1)
-    local hpText = math.floor(math.max(0, hp - karma)) .. " / " .. maxHp
-    Fonts.default:draw(hpText, HP_BAR_X + HP_BAR_W + 12, INFO_Y, "left")
+    -- HP bar (label + bar + values + optional KR) delegated to HpBar component
+    self.hpBar:draw(hp, maxHp, karma)
 
     -- Action buttons at native size
     for i, btn in ipairs(self.buttons) do

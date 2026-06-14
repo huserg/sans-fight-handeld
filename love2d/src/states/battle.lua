@@ -349,6 +349,11 @@ function Battle:update(dt, game)
         end
     end
 
+    -- Keep the HP bar smooth-animation state current.
+    if self.battleUI and self.playerHeart then
+        self.battleUI:update(dt, self.game.hp, self.game.maxHp, self.playerHeart.karma)
+    end
+
     if self.phase and self.phase.update then
         self.phase:update(dt, self)
     end

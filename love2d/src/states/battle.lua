@@ -32,10 +32,22 @@ local Battle = {
     blackScreen = false,
     sansText = nil,
 
+    -- Phase machine
+    phase = nil,
+    phaseName = nil,
+    phases = {},
+
     -- Test spawn timer (only used when no attack loaded)
     testSpawnTimer = 0,
     useTestSpawner = false
 }
+
+function Battle:setPhase(name)
+    if self.phase and self.phase.exit then self.phase:exit(self) end
+    self.phaseName = name
+    self.phase = self.phases[name]
+    if self.phase and self.phase.enter then self.phase:enter(self) end
+end
 
 function Battle:enter(game)
     self.game = game
@@ -69,6 +81,11 @@ function Battle:enter(game)
     self.sansText = nil
     self.useTestSpawner = false
 
+    -- Register phases
+    self.phases = {
+        attack = require("src.states.battle_phases.attack"),
+    }
+
     -- Start attack based on mode
     self:startBattle()
 end
@@ -89,6 +106,8 @@ function Battle:startBattle()
         -- Single attack mode
         self:loadSingleAttack(self.game.singleAttack)
     end
+
+    self:setPhase("attack")
 end
 
 function Battle:loadAttackSequence(name)
@@ -126,7 +145,25 @@ function Battle:showSansText(text)
     self.sansTextTimer = 2.0
 end
 
+function Battle:onAttackFinished()
+    if self.game.simulatorMode == Constants.MODE_SINGLE then
+        Audio:stopMusic()
+        self.game:setState("menu")
+    end
+    -- Normal/endless turn routing handled in later tasks
+end
+
+function Battle:checkGameOver()
+    if self.game.hp <= 0 then
+        Audio:stopMusic()
+        Audio:playSfx("heartShatter")
+        self.game:setState("menu")
+    end
+end
+
 function Battle:update(dt, game)
+    self.game = game
+
     if self.paused then
         if Input:justPressed("confirm") or Input:justPressed("cancel") then
             self.paused = false
@@ -150,67 +187,61 @@ function Battle:update(dt, game)
         end
     end
 
-    -- Update attack sequencer
-    if self.sequencer then
-        self.sequencer:update(dt)
+    if self.phase and self.phase.update then
+        self.phase:update(dt, self)
+    end
+end
 
-        -- Check if attack finished
-        if self.sequencer:isFinished() then
-            -- Return to menu after single attack
-            if game.simulatorMode == Constants.MODE_SINGLE then
-                Audio:stopMusic()
-                game:setState("menu")
-                return
-            end
+function Battle:draw(game)
+    -- Draw black screen overlay if active
+    if self.blackScreen then
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.rectangle("fill", 0, 0, 640, 480)
+        return
+    end
+
+    if self.phase and self.phase.draw then
+        self.phase:draw(self)
+    end
+end
+
+-- Arena drawing: sans, combat zone, clipped/unclipped entities, heart, battleUI, sansText
+function Battle:drawArena()
+    -- Draw Sans (behind combat zone)
+    self.sans:draw()
+    self.sans:drawHead()
+
+    -- Draw combat zone
+    self.combatZone:draw()
+
+    -- Draw attack entities (behind heart). Board bullets (bones) are clipped to
+    -- the combat zone; blasters and other entities fire from outside, unclipped.
+    local ix1, iy1, ix2, iy2 = self.combatZone:getInnerBounds()
+    love.graphics.setScissor(ix1, iy1, ix2 - ix1, iy2 - iy1)
+    for _, entity in ipairs(self.entities) do
+        if entity.clipToZone and entity.draw then
+            entity:draw()
+        end
+    end
+    love.graphics.setScissor()
+
+    for _, entity in ipairs(self.entities) do
+        if not entity.clipToZone and entity.draw then
+            entity:draw()
         end
     end
 
-    -- Update combat zone
-    self.combatZone:update(dt)
+    -- Draw player heart
+    self.playerHeart:draw()
 
-    -- Update player heart (with the current platforms for blue-mode landing)
-    self.playerHeart.platforms = self:getPlatforms()
-    self.playerHeart:update(dt)
+    -- Draw Battle UI (bottom bar with buttons and HP)
+    self.battleUI:draw(self.game.hp, self.game.maxHp, self.playerHeart.karma)
 
-    -- Slam impact damage (when SansSlamDamage was enabled)
-    if self.playerHeart.pendingSlamDamage then
-        self.playerHeart.pendingSlamDamage = false
-        if self.playerHeart:damage(3) then
-            game.hp = game.hp - 3
-            Audio:playSfx("playerDamaged")
-        end
-    end
-
-    -- Update Sans
-    self.sans:update(dt)
-
-    -- Update attack entities
-    self:updateEntities(dt)
-
-    -- Check collisions
-    self:checkCollisions(game)
-
-    -- Update attack timer
-    self.attackTimer = self.attackTimer + dt
-
-    -- Update sans text timer
-    if self.sansText and self.sansTextTimer then
-        self.sansTextTimer = self.sansTextTimer - dt
-        if self.sansTextTimer <= 0 then
-            self.sansText = nil
-        end
-    end
-
-    -- Test bone spawning (only when no attack loaded)
-    if self.useTestSpawner then
-        self:updateTestSpawner(dt)
-    end
-
-    -- Check for game over
-    if game.hp <= 0 then
-        Audio:stopMusic()
-        Audio:playSfx("heartShatter")
-        game:setState("menu")
+    -- Draw Sans text if active
+    if self.sansText then
+        love.graphics.setColor(1, 1, 1)
+        Fonts.sans:setScale(1)
+        Fonts.sans:draw(self.sansText, 320, 100, "center")
     end
 end
 
@@ -373,52 +404,6 @@ function Battle:getPlatforms()
     return platforms
 end
 
-function Battle:draw(game)
-    -- Draw black screen overlay if active
-    if self.blackScreen then
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.rectangle("fill", 0, 0, 640, 480)
-        return
-    end
-
-    -- Draw Sans (behind combat zone)
-    self.sans:draw()
-    self.sans:drawHead()
-
-    -- Draw combat zone
-    self.combatZone:draw()
-
-    -- Draw attack entities (behind heart). Board bullets (bones) are clipped to
-    -- the combat zone; blasters and other entities fire from outside, unclipped.
-    local ix1, iy1, ix2, iy2 = self.combatZone:getInnerBounds()
-    love.graphics.setScissor(ix1, iy1, ix2 - ix1, iy2 - iy1)
-    for _, entity in ipairs(self.entities) do
-        if entity.clipToZone and entity.draw then
-            entity:draw()
-        end
-    end
-    love.graphics.setScissor()
-
-    for _, entity in ipairs(self.entities) do
-        if not entity.clipToZone and entity.draw then
-            entity:draw()
-        end
-    end
-
-    -- Draw player heart
-    self.playerHeart:draw()
-
-    -- Draw Battle UI (bottom bar with buttons and HP)
-    self.battleUI:draw(game.hp, game.maxHp, self.playerHeart.karma)
-
-    -- Draw Sans text if active
-    if self.sansText then
-        love.graphics.setColor(1, 1, 1)
-        Fonts.sans:setScale(1)
-        Fonts.sans:draw(self.sansText, 320, 100, "center")
-    end
-end
-
 function Battle:exit()
     -- Stop music
     Audio:stopMusic()
@@ -432,6 +417,9 @@ function Battle:exit()
     self.entities = {}
     self.blackScreen = false
     self.sansText = nil
+    self.phase = nil
+    self.phaseName = nil
+    self.phases = {}
 end
 
 return Battle

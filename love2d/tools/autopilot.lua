@@ -43,7 +43,7 @@ local origUpdate = love.update
 
 -- Fixed timestep so captures are reproducible regardless of host vsync
 local FIXED_DT = 1 / 60
-local JUMP_HOLD = 0.08
+local JUMP_HOLD = tonumber(os.getenv("SANS_AUTOPILOT_JUMPHOLD")) or 0.08
 
 local started = false
 local elapsed = 0

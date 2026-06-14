@@ -13,6 +13,9 @@ local MOVE_SPEED = 200
 local GRAVITY = 800
 local JUMP_SPEED = -350
 local MAX_FALL_SPEED = 400
+-- Releasing jump mid-ascent keeps this fraction of the upward velocity,
+-- giving variable jump height based on how long the button is held.
+local JUMP_CUT = 0.4
 
 function PlayerHeart.new(combatZone)
     local self = setmetatable({}, PlayerHeart)
@@ -252,6 +255,19 @@ function PlayerHeart:updateBlueMode(dt, moveX, moveY)
             self.vx = JUMP_SPEED
         end
         self.grounded = false
+    end
+
+    -- Variable jump height: releasing jump while still rising cuts the ascent
+    if Input:justReleased("confirm") then
+        if self.gravityDirection == "down" and self.vy < 0 then
+            self.vy = self.vy * JUMP_CUT
+        elseif self.gravityDirection == "up" and self.vy > 0 then
+            self.vy = self.vy * JUMP_CUT
+        elseif self.gravityDirection == "left" and self.vx > 0 then
+            self.vx = self.vx * JUMP_CUT
+        elseif self.gravityDirection == "right" and self.vx < 0 then
+            self.vx = self.vx * JUMP_CUT
+        end
     end
 
     -- Apply velocity

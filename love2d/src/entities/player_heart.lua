@@ -9,7 +9,8 @@ local PlayerHeart = {}
 PlayerHeart.__index = PlayerHeart
 
 -- Movement constants
-local MOVE_SPEED = 200
+-- Heart speed matches the original (HeartSpeed = 150 in the C2 Battle sheet)
+local MOVE_SPEED = 150
 local GRAVITY = 800
 local JUMP_SPEED = -350
 local MAX_FALL_SPEED = 400

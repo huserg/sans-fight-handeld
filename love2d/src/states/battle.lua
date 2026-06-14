@@ -218,8 +218,9 @@ function Battle:update(dt, game)
         return
     end
 
-    -- Toggle heart mode for testing (only when test spawner is active)
-    if self.useTestSpawner and Input:justPressed("cancel") then
+    -- Toggle heart mode for testing (only when test spawner is active and not
+    -- in player_turn, where cancel is used for sub-menu navigation).
+    if self.useTestSpawner and self.phaseName ~= "player_turn" and Input:justPressed("cancel") then
         if self.playerHeart.mode == Constants.HEARTMODE_RED then
             self.playerHeart:setMode(Constants.HEARTMODE_BLUE)
         else

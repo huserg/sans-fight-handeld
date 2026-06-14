@@ -81,8 +81,14 @@ function PlayerTurn:enter(battle)
     self.showStrike   = false
 end
 
+-- Default combat zone bounds (attacks resize via their own CSV commands on enter).
+local DEFAULT_X1, DEFAULT_Y1, DEFAULT_X2, DEFAULT_Y2 = 239, 226, 404, 391
+
 function PlayerTurn:exit(battle)
     battle.hideHeart = false
+    -- Restore the narrow default zone so attacks that skip their own resize
+    -- do not inherit the wide player-turn area.
+    battle.combatZone:setSize(DEFAULT_X1, DEFAULT_Y1, DEFAULT_X2, DEFAULT_Y2)
 end
 
 -- ---------------------------------------------------------------------------
@@ -199,6 +205,8 @@ function PlayerTurn:dispatchAction(action, battle)
         Audio:playSfx("menuSelect")
 
     elseif action.kind == "flee" then
+        -- Reveal the heart before leaving so state is clean for the next battle entry.
+        battle.hideHeart = false
         Audio:stopMusic()
         battle.game:setState("menu")
 

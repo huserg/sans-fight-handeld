@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.1.0] - Unreleased
+## [2.1.0] - 2026-06-14
 
 ### Added (Normal Mode)
 - Turn-based fight: player menu (FIGHT/ACT/ITEM/MERCY), Sans dialogue per

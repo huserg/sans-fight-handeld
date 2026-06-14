@@ -12,6 +12,8 @@ local BattleUI = require("src.ui.battle_ui")
 local Bone = require("src.entities.bone")
 local AttackSequencer = require("src.systems.attack_sequencer")
 
+local TurnManager = require("src.systems.turn_manager")
+
 local Battle = {
     game = nil,
 
@@ -31,6 +33,10 @@ local Battle = {
     paused = false,
     blackScreen = false,
     sansText = nil,
+    hideHeart = false,
+
+    -- Turn management (Normal / Practice only)
+    turnManager = nil,
 
     -- Phase machine
     phase = nil,
@@ -81,9 +87,13 @@ function Battle:enter(game)
     self.sansText = nil
     self.useTestSpawner = false
 
+    -- Reset heart visibility flag
+    self.hideHeart = false
+
     -- Register phases
     self.phases = {
-        attack = require("src.states.battle_phases.attack"),
+        attack      = require("src.states.battle_phases.attack"),
+        player_turn = require("src.states.battle_phases.player_turn"),
     }
 
     -- Start attack based on mode
@@ -93,29 +103,33 @@ end
 function Battle:startBattle()
     local mode = self.game.simulatorMode
 
-    if mode == Constants.MODE_NORMAL then
-        -- Start normal fight sequence
-        self:loadAttackSequence("normal")
-    elseif mode == Constants.MODE_PRACTICE then
-        -- Practice mode - same as normal but infinite HP
-        self:loadAttackSequence("normal")
-    elseif mode == Constants.MODE_ENDLESS then
-        -- Endless mode - random attacks
-        self:startEndlessMode()
-    elseif mode == Constants.MODE_SINGLE then
-        -- Single attack mode
-        self:loadSingleAttack(self.game.singleAttack)
-    end
+    if mode == Constants.MODE_NORMAL or mode == Constants.MODE_PRACTICE then
+        -- Create the turn manager and advance to turn 1 (intro).
+        self.turnManager = TurnManager.new()
+        self.turnManager:advance()
 
-    self:setPhase("attack")
+        -- Start megalovania and load the intro attack.
+        Audio:playMusic("megalovania", true)
+        if not self.sequencer:loadAttack("sans_intro") then
+            self.useTestSpawner = true
+        end
+        self:setPhase("attack")
+
+    elseif mode == Constants.MODE_ENDLESS then
+        self:startEndlessMode()
+        self:setPhase("attack")
+
+    elseif mode == Constants.MODE_SINGLE then
+        self:loadSingleAttack(self.game.singleAttack)
+        self:setPhase("attack")
+    end
 end
 
 function Battle:loadAttackSequence(name)
-    -- Start with intro attack for normal mode
+    -- Kept for compatibility; Normal/Practice now goes through startBattle directly.
     if self.sequencer:loadAttack("sans_intro") then
         Audio:playMusic("megalovania", true)
     else
-        -- Fallback to test spawner
         self.useTestSpawner = true
     end
 end
@@ -146,11 +160,37 @@ function Battle:showSansText(text)
 end
 
 function Battle:onAttackFinished()
-    if self.game.simulatorMode == Constants.MODE_SINGLE then
+    local mode = self.game.simulatorMode
+
+    if mode == Constants.MODE_SINGLE then
         Audio:stopMusic()
         self.game:setState("menu")
+
+    elseif mode == Constants.MODE_NORMAL or mode == Constants.MODE_PRACTICE then
+        if self.turnManager:isLastTurn() then
+            -- Victory handling is Task 8; for now just return to the menu.
+            Audio:stopMusic()
+            self.game:setState("menu")
+        else
+            self.turnManager:advance()
+            self:setPhase("player_turn")
+        end
     end
-    -- Normal/endless turn routing handled in later tasks
+    -- Endless mode: no turn manager; let the phase handle looping.
+end
+
+-- Called by player_turn after the player has chosen an action.
+-- Loads the current turn's attack and begins the attack phase.
+function Battle:onPlayerActionDone()
+    local turn = self.turnManager:current()
+    if turn and turn.attack then
+        if not self.sequencer:loadAttack(turn.attack) then
+            -- Attack CSV missing — skip to next turn.
+            self:onAttackFinished()
+            return
+        end
+    end
+    self:setPhase("attack")
 end
 
 function Battle:checkGameOver()
@@ -232,8 +272,10 @@ function Battle:drawArena()
         end
     end
 
-    -- Draw player heart
-    self.playerHeart:draw()
+    -- Draw player heart (hidden during player-turn phase)
+    if not self.hideHeart then
+        self.playerHeart:draw()
+    end
 
     -- Draw Battle UI (bottom bar with buttons and HP)
     self.battleUI:draw(self.game.hp, self.game.maxHp, self.playerHeart.karma)
@@ -415,9 +457,11 @@ function Battle:exit()
     self.sans = nil
     self.battleUI = nil
     self.sequencer = nil
+    self.turnManager = nil
     self.entities = {}
     self.blackScreen = false
     self.sansText = nil
+    self.hideHeart = false
     self.phase = nil
     self.phaseName = nil
     self.phases = {}

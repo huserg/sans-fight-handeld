@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [2.1.0] - Unreleased
 
+### Added (Normal Mode)
+- Turn-based fight: player menu (FIGHT/ACT/ITEM/MERCY), Sans dialogue per
+  turn, the full 25-turn attack order, damage numbers
+- Endings: game over (heart shatter), get dunked on, victory; Practice HP floor
+- Variable jump height in blue mode (hold to jump higher)
+
 ### Added (Attack VM)
 - Attack CSV virtual machine: variables ($Name), labels, 10 jump opcodes,
   13 math opcodes, GetHeartPos

@@ -43,7 +43,8 @@ function Game:load()
     self.states.test_sans = require("src.states.tests.test_sans")
     self.states.test_blaster = require("src.states.tests.test_blaster")
     self.states.test_audio = require("src.states.tests.test_audio")
-    self.states.test_dialogue = require("src.states.tests.test_dialogue")
+    self.states.test_dialogue    = require("src.states.tests.test_dialogue")
+    self.states.test_battlemenu  = require("src.states.tests.test_battle_menu")
 
     -- Start with loading state
     self:setState("loading")

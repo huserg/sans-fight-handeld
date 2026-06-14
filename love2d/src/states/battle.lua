@@ -144,6 +144,9 @@ function Battle:startBattle()
         self.turnManager = TurnManager.new()
         self.turnManager:advance()
 
+        -- Reset the flag that guards the finishing player turn (post-sans_final).
+        self.sansAsleep = false
+
         -- Start megalovania and load the intro attack.
         Audio:playMusic("megalovania", true)
         if not self.sequencer:loadAttack("sans_intro") then
@@ -204,8 +207,9 @@ function Battle:onAttackFinished()
 
     elseif mode == Constants.MODE_NORMAL or mode == Constants.MODE_PRACTICE then
         if self.turnManager:isLastTurn() then
-            -- The last attack in the script (sans_final) has just ended.
-            -- Give the player their final turn so FIGHT can connect.
+            -- sans_final has just finished; mark Sans as asleep so the
+            -- finishing player turn lets FIGHT connect.
+            self.sansAsleep = true
             self:setPhase("player_turn")
         else
             self.turnManager:advance()
@@ -235,9 +239,9 @@ function Battle:onDialogueDone()
         return
     end
 
-    -- On the final turn the attack has already played (that is how we reached
-    -- the player menu).  Non-FIGHT actions just return to the player menu.
-    if self.turnManager and self.turnManager:isLastTurn() then
+    -- After sans_final has already played, sansAsleep is true: the player is on
+    -- the finishing menu where non-FIGHT actions loop back without loading any attack.
+    if self.sansAsleep then
         self:setPhase("player_turn")
         return
     end

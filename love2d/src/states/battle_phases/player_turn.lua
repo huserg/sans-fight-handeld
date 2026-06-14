@@ -218,11 +218,10 @@ function PlayerTurn:dispatchAction(action, battle)
     end
 end
 
--- Return true when the current turn is the final one (event == "final").
+-- Return true when Sans is asleep (sans_final has already played), meaning
+-- the next FIGHT swing connects and triggers victory.
 local function isFinalTurn(battle)
-    if not battle.turnManager then return false end
-    local turn = battle.turnManager:current()
-    return turn ~= nil and turn.event == "final"
+    return battle.sansAsleep == true
 end
 
 -- Called when confirm is pressed while the target bar is active.

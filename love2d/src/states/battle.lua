@@ -193,6 +193,7 @@ function Battle:update(dt, game)
 end
 
 function Battle:draw(game)
+    -- game param kept for state-interface symmetry; rendering reads self.game
     -- Draw black screen overlay if active
     if self.blackScreen then
         love.graphics.setColor(0, 0, 0)
@@ -260,7 +261,7 @@ function Battle:updateEntities(dt)
     end
 end
 
-function Battle:checkCollisions(game)
+function Battle:checkCollisions()
     if self.playerHeart.invincible then
         return
     end
@@ -299,7 +300,7 @@ function Battle:checkCollisions(game)
         if collided and entity.damage then
             local damaged = self.playerHeart:damage(entity.damage)
             if damaged then
-                game.hp = game.hp - entity.damage
+                self.game.hp = self.game.hp - entity.damage
                 Audio:playSfx("playerDamaged")
 
                 -- Add karma if applicable

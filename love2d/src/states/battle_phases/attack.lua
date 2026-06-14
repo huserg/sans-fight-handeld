@@ -6,6 +6,7 @@ local Audio = require("src.systems.audio")
 local AttackPhase = {}
 
 function AttackPhase:enter(battle)
+    -- The attack to run is loaded on the battle before switching to this phase
 end
 
 function AttackPhase:update(dt, battle)
@@ -33,7 +34,7 @@ function AttackPhase:update(dt, battle)
 
     battle.sans:update(dt)
     battle:updateEntities(dt)
-    battle:checkCollisions(battle.game)
+    battle:checkCollisions()
 
     -- Update attack timer
     battle.attackTimer = battle.attackTimer + dt

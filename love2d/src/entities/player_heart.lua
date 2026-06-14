@@ -243,8 +243,8 @@ function PlayerHeart:updateBlueMode(dt, moveX, moveY)
         self.vx = math.min(self.vx, maxFall)
     end
 
-    -- Jump when grounded
-    if self.grounded and Input:justPressed("confirm") then
+    -- Jump when grounded (confirm or the up arrow)
+    if self.grounded and (Input:justPressed("confirm") or Input:justPressed("up")) then
         if self.gravityDirection == "down" then
             self.vy = JUMP_SPEED
         elseif self.gravityDirection == "up" then
@@ -258,7 +258,7 @@ function PlayerHeart:updateBlueMode(dt, moveX, moveY)
     end
 
     -- Variable jump height: releasing jump while still rising cuts the ascent
-    if Input:justReleased("confirm") then
+    if Input:justReleased("confirm") or Input:justReleased("up") then
         if self.gravityDirection == "down" and self.vy < 0 then
             self.vy = self.vy * JUMP_CUT
         elseif self.gravityDirection == "up" and self.vy > 0 then

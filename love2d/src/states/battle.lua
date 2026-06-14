@@ -90,10 +90,26 @@ function Battle:enter(game)
     -- Reset heart visibility flag
     self.hideHeart = false
 
+    -- Item inventory: one set per fight, shared across all turns.
+    self.items = {
+        { name = "Butterscotch Pie", heal = 99, used = false },
+        { name = "Instant Noodles",  heal = 90, used = false },
+        { name = "Face Steak",       heal = 60, used = false },
+        { name = "Legendary Hero",   heal = 40, used = false },
+    }
+
+    -- Pending action set by player_turn before transitioning to action_resolve.
+    self.pendingAction = nil
+
+    -- Pending ending flag (set by action_resolve on dunked spare).
+    -- TODO: wire this into the dunked ending sequence (Task 8).
+    self.pendingEnding = nil
+
     -- Register phases
     self.phases = {
-        attack      = require("src.states.battle_phases.attack"),
-        player_turn = require("src.states.battle_phases.player_turn"),
+        attack         = require("src.states.battle_phases.attack"),
+        player_turn    = require("src.states.battle_phases.player_turn"),
+        action_resolve = require("src.states.battle_phases.action_resolve"),
     }
 
     -- Start attack based on mode

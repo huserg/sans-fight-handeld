@@ -28,16 +28,23 @@ local DEFAULT_ITEMS = {
 }
 
 -- Constructor.
-function BattleMenu.new()
+-- @param items  optional shared item table (from battle.items); when nil, a
+--               fresh deep-copy of DEFAULT_ITEMS is used so existing tests pass.
+function BattleMenu.new(items)
     local self = setmetatable({}, BattleMenu)
     self.selected   = 1       -- root cursor (1=FIGHT, 2=ACT, 3=ITEM, 4=MERCY)
     self.level      = "root"  -- current menu depth
     self.subCursor  = 1       -- cursor within the active sub-menu
 
-    -- Deep-copy the item list so each instance is independent.
-    self.items = {}
-    for _, item in ipairs(DEFAULT_ITEMS) do
-        table.insert(self.items, { name = item.name, heal = item.heal, used = item.used })
+    if items then
+        -- Use the shared battle-level item table directly (persistent per fight).
+        self.items = items
+    else
+        -- Deep-copy the default list so each standalone instance is independent.
+        self.items = {}
+        for _, item in ipairs(DEFAULT_ITEMS) do
+            table.insert(self.items, { name = item.name, heal = item.heal, used = item.used })
+        end
     end
 
     return self

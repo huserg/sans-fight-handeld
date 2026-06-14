@@ -36,7 +36,8 @@ function PlayerTurn:enter(battle)
     battle.hideHeart = true
 
     -- Fresh menu each turn so cursor always starts at FIGHT.
-    self.menu = BattleMenu.new()
+    -- Pass the battle-level items table so used state persists across turns.
+    self.menu = BattleMenu.new(battle.items)
 
     -- Sync the button highlight on entry.
     if battle.battleUI.setSelectedButton then
@@ -204,15 +205,10 @@ function PlayerTurn:dispatchAction(action, battle)
         self.cursorX      = 0
         Audio:playSfx("menuSelect")
 
-    elseif action.kind == "flee" then
-        -- Reveal the heart before leaving so state is clean for the next battle entry.
-        battle.hideHeart = false
-        Audio:stopMusic()
-        battle.game:setState("menu")
-
     else
-        -- act_check, item, spare: placeholder — full resolution in Task 6.
-        battle:onPlayerActionDone()
+        -- act_check, item, spare, flee: hand off to action_resolve.
+        battle.pendingAction = action
+        battle:setPhase("action_resolve")
     end
 end
 

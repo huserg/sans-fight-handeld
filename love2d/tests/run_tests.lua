@@ -9,6 +9,7 @@ local suites = {
     "tests.test_attack_sequencer",
     "tests.test_turn_manager",
     "tests.test_damage_number",
+    "tests.test_battle_menu",
 }
 
 local passed, failed = 0, 0

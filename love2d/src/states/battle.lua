@@ -186,6 +186,11 @@ end
 -- Methods called by attack sequencer
 function Battle:setBlackScreen(enabled)
     self.blackScreen = enabled
+    -- Enabling the black screen clears projectiles from the zone (per the
+    -- original behavior); attacks use it to wipe the board between waves.
+    if enabled then
+        self:clearEntities()
+    end
 end
 
 function Battle:showSansText(text)
@@ -199,6 +204,10 @@ function Battle:showSansText(text)
 end
 
 function Battle:onAttackFinished()
+    -- Despawn any projectiles left over from the attack that just ended so they
+    -- don't bleed into the player turn or the next attack.
+    self:clearEntities()
+
     local mode = self.game.simulatorMode
 
     if mode == Constants.MODE_SINGLE then
@@ -568,6 +577,11 @@ end
 
 function Battle:clearEntities()
     self.entities = {}
+    -- Drop any platform the heart was riding so it doesn't reference a gone entity
+    if self.playerHeart then
+        self.playerHeart.platforms = {}
+        self.playerHeart.ridingPlatform = nil
+    end
 end
 
 function Battle:updateTestSpawner(dt)

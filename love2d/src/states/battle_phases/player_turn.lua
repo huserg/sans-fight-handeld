@@ -50,6 +50,7 @@ function PlayerTurn:enter(battle)
     self.barWidth      = 0          -- computed in draw; set here for safety
     self.postSwingTimer = 0
     self.swingDone     = false
+    self.isFinalHit    = false
 
     -- Damage numbers.
     self.damageNumbers = {}
@@ -126,12 +127,17 @@ function PlayerTurn:update(dt, battle)
         end
     end
 
-    -- Post-swing delay: wait, then hand off to the next attack.
+    -- Post-swing delay: wait, then hand off to the next attack (or victory).
     if self.swingDone then
         self.postSwingTimer = self.postSwingTimer - dt
         if self.postSwingTimer <= 0 then
             self.swingDone = false
-            battle:onPlayerActionDone()
+            if self.isFinalHit then
+                self.isFinalHit = false
+                battle:triggerVictory()
+            else
+                battle:onPlayerActionDone()
+            end
         end
         return
     end
@@ -212,6 +218,13 @@ function PlayerTurn:dispatchAction(action, battle)
     end
 end
 
+-- Return true when the current turn is the final one (event == "final").
+local function isFinalTurn(battle)
+    if not battle.turnManager then return false end
+    local turn = battle.turnManager:current()
+    return turn ~= nil and turn.event == "final"
+end
+
 -- Called when confirm is pressed while the target bar is active.
 function PlayerTurn:doSwing(battle)
     self.targetActive = false
@@ -223,13 +236,22 @@ function PlayerTurn:doSwing(battle)
     self.showStrike  = true
     self.strikeTimer = 0.25
 
-    -- All non-final turns result in MISS (hit detection is Task 8).
     local sx, sy = battle.sans.x, battle.sans.y
-    table.insert(self.damageNumbers, DamageNumber.new("MISS", sx, sy - 40))
 
-    -- Schedule transition to next attack.
-    self.swingDone      = true
-    self.postSwingTimer = POST_SWING_DELAY
+    if isFinalTurn(battle) then
+        -- Final turn: the hit connects.  Transition to the victory ending
+        -- after a short pause so the player can see the damage number.
+        table.insert(self.damageNumbers, DamageNumber.new("9999", sx, sy - 40))
+        self.swingDone      = true
+        self.postSwingTimer = POST_SWING_DELAY
+        self.isFinalHit     = true
+    else
+        -- All other turns result in MISS.
+        table.insert(self.damageNumbers, DamageNumber.new("MISS", sx, sy - 40))
+        self.swingDone      = true
+        self.postSwingTimer = POST_SWING_DELAY
+        self.isFinalHit     = false
+    end
 end
 
 -- ---------------------------------------------------------------------------

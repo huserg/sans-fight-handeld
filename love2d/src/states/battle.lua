@@ -14,6 +14,9 @@ local AttackSequencer = require("src.systems.attack_sequencer")
 
 local TurnManager = require("src.systems.turn_manager")
 
+-- Duration of the heart-shatter animation before returning to menu.
+local SHATTER_DURATION = 0.9
+
 local Battle = {
     game = nil,
 
@@ -45,7 +48,17 @@ local Battle = {
 
     -- Test spawn timer (only used when no attack loaded)
     testSpawnTimer = 0,
-    useTestSpawner = false
+    useTestSpawner = false,
+
+    -- Ending overlay (game over shatter / dunked / victory).
+    -- "gameover" | "dunked" | "victory" | nil
+    ending = nil,
+    endingTimer = 0,
+    -- Shard sprites loaded lazily (3 sheets, one shard per frame).
+    shardImages = nil,
+    -- Last known heart position, captured when the shatter is triggered.
+    shatterX = 320,
+    shatterY = 308,
 }
 
 function Battle:setPhase(name)
@@ -102,15 +115,21 @@ function Battle:enter(game)
     self.pendingAction = nil
 
     -- Pending ending flag (set by action_resolve on dunked spare).
-    -- TODO: wire this into the dunked ending sequence (Task 8).
     self.pendingEnding = nil
+
+    -- Reset ending state.
+    self.ending = nil
+    self.endingTimer = 0
+    self.shardImages = nil
 
     -- Register phases
     self.phases = {
-        attack         = require("src.states.battle_phases.attack"),
-        player_turn    = require("src.states.battle_phases.player_turn"),
-        action_resolve = require("src.states.battle_phases.action_resolve"),
-        sans_dialogue  = require("src.states.battle_phases.sans_dialogue"),
+        attack          = require("src.states.battle_phases.attack"),
+        player_turn     = require("src.states.battle_phases.player_turn"),
+        action_resolve  = require("src.states.battle_phases.action_resolve"),
+        sans_dialogue   = require("src.states.battle_phases.sans_dialogue"),
+        ending_dunked   = require("src.states.battle_phases.ending_dunked"),
+        ending_victory  = require("src.states.battle_phases.ending_victory"),
     }
 
     -- Start attack based on mode
@@ -185,9 +204,9 @@ function Battle:onAttackFinished()
 
     elseif mode == Constants.MODE_NORMAL or mode == Constants.MODE_PRACTICE then
         if self.turnManager:isLastTurn() then
-            -- Victory handling is Task 8; for now just return to the menu.
-            Audio:stopMusic()
-            self.game:setState("menu")
+            -- The last attack in the script (sans_final) has just ended.
+            -- Give the player their final turn so FIGHT can connect.
+            self:setPhase("player_turn")
         else
             self.turnManager:advance()
             self:setPhase("player_turn")
@@ -197,14 +216,32 @@ function Battle:onAttackFinished()
 end
 
 -- Called by player_turn / action_resolve after the player has chosen an action.
--- Transitions to the sans_dialogue phase so Sans can speak before attacking.
+-- Checks for a pending dunked ending; otherwise transitions to sans_dialogue.
 function Battle:onPlayerActionDone()
+    if self.pendingEnding == "dunked" then
+        self:triggerDunked()
+        return
+    end
     self:setPhase("sans_dialogue")
 end
 
 -- Called by sans_dialogue once the speech bubble is dismissed (or skipped when
 -- the turn has no dialogue). Loads the attack and begins the attack phase.
 function Battle:onDialogueDone()
+    -- Dunked ending: after action_resolve showed "..." and called onPlayerActionDone,
+    -- sans_dialogue is bypassed above; this branch handles any unexpected re-entry.
+    if self.pendingEnding == "dunked" then
+        self:triggerDunked()
+        return
+    end
+
+    -- On the final turn the attack has already played (that is how we reached
+    -- the player menu).  Non-FIGHT actions just return to the player menu.
+    if self.turnManager and self.turnManager:isLastTurn() then
+        self:setPhase("player_turn")
+        return
+    end
+
     local turn = self.turnManager:current()
     if turn and turn.attack then
         if not self.sequencer:loadAttack(turn.attack) then
@@ -216,16 +253,73 @@ function Battle:onDialogueDone()
     self:setPhase("attack")
 end
 
+-- Trigger the "get dunked on" game-over path.
+function Battle:triggerDunked()
+    self.pendingEnding = nil
+    -- Use the dedicated dunked-ending phase (or fall back to a direct game over).
+    self:setPhase("ending_dunked")
+end
+
+-- Trigger the victory ending.
+function Battle:triggerVictory()
+    self:setPhase("ending_victory")
+end
+
 function Battle:checkGameOver()
     if self.game.hp <= 0 then
-        Audio:stopMusic()
-        Audio:playSfx("heartShatter")
-        self.game:setState("menu")
+        local mode = self.game.simulatorMode
+        if mode == Constants.MODE_PRACTICE then
+            -- Practice floor: clamp HP to 1 and never die.
+            self.game.hp = math.max(1, self.game.hp)
+            return
+        end
+        -- Normal / Single / Endless: trigger the shatter ending.
+        self:triggerGameOver()
+    end
+end
+
+-- Start the heart-shatter animation then return to menu.
+function Battle:triggerGameOver()
+    if self.ending then return end  -- already ending
+    Audio:stopMusic()
+    Audio:playSfx("heartShatter")
+    self.ending     = "gameover"
+    self.endingTimer = SHATTER_DURATION
+    -- Capture the heart's last position for the shard animation.
+    if self.playerHeart then
+        self.shatterX = self.playerHeart.x
+        self.shatterY = self.playerHeart.y
+    end
+    -- Load shard sprites lazily.
+    self:loadShardImages()
+end
+
+-- Lazy-load the three heartshard sprite sheets.
+function Battle:loadShardImages()
+    if self.shardImages then return end
+    self.shardImages = {}
+    for i = 0, 2 do
+        local ok, img = pcall(love.graphics.newImage,
+            "assets/sprites/heartshard-sheet" .. i .. ".png")
+        if ok then
+            img:setFilter("nearest", "nearest")
+            self.shardImages[i + 1] = img
+        end
     end
 end
 
 function Battle:update(dt, game)
     self.game = game
+
+    -- Handle game-over shatter overlay timer (independent of phase machine).
+    if self.ending == "gameover" then
+        self.endingTimer = self.endingTimer - dt
+        if self.endingTimer <= 0 then
+            self.ending = nil
+            game:setState("menu")
+        end
+        return
+    end
 
     if self.paused then
         if Input:justPressed("confirm") or Input:justPressed("cancel") then
@@ -265,9 +359,51 @@ function Battle:draw(game)
         return
     end
 
+    -- Game-over shatter overlay: hide normal phase draw and show shard explosion.
+    if self.ending == "gameover" then
+        self:drawShatter()
+        return
+    end
+
     if self.phase and self.phase.draw then
         self.phase:draw(self)
     end
+end
+
+-- Draw the three heart shards flying outward from the shatter point.
+function Battle:drawShatter()
+    -- Black background for contrast.
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle("fill", 0, 0, 640, 480)
+
+    if not self.shardImages then return end
+
+    -- Progress from 1 (just started) down to 0 (ending).
+    local progress = self.endingTimer / SHATTER_DURATION
+    -- Fade out in the last third of the animation.
+    local alpha = math.min(1, progress * 3)
+
+    -- Each shard flies in a different direction from the last heart position.
+    local directions = {
+        { dx = -1,  dy = -0.8 },
+        { dx =  0,  dy =  1.2 },
+        { dx =  1,  dy = -0.6 },
+    }
+    local speed  = 80   -- pixels of travel over the full duration
+    local spread = (1 - progress) * speed
+
+    for i, dir in ipairs(directions) do
+        local img = self.shardImages[i]
+        if img then
+            local iw, ih = img:getDimensions()
+            local sx = self.shatterX + dir.dx * spread
+            local sy = self.shatterY + dir.dy * spread
+            love.graphics.setColor(1, 0.15, 0.15, alpha)
+            love.graphics.draw(img, sx, sy, 0, 2, 2, iw / 2, ih / 2)
+        end
+    end
+
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 -- Arena drawing: sans, combat zone, clipped/unclipped entities, heart, battleUI, sansText
@@ -489,6 +625,10 @@ function Battle:exit()
     self.phase = nil
     self.phaseName = nil
     self.phases = {}
+    self.ending = nil
+    self.endingTimer = 0
+    self.shardImages = nil
+    self.pendingEnding = nil
 end
 
 return Battle

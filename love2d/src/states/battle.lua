@@ -110,6 +110,7 @@ function Battle:enter(game)
         attack         = require("src.states.battle_phases.attack"),
         player_turn    = require("src.states.battle_phases.player_turn"),
         action_resolve = require("src.states.battle_phases.action_resolve"),
+        sans_dialogue  = require("src.states.battle_phases.sans_dialogue"),
     }
 
     -- Start attack based on mode
@@ -195,9 +196,15 @@ function Battle:onAttackFinished()
     -- Endless mode: no turn manager; let the phase handle looping.
 end
 
--- Called by player_turn after the player has chosen an action.
--- Loads the current turn's attack and begins the attack phase.
+-- Called by player_turn / action_resolve after the player has chosen an action.
+-- Transitions to the sans_dialogue phase so Sans can speak before attacking.
 function Battle:onPlayerActionDone()
+    self:setPhase("sans_dialogue")
+end
+
+-- Called by sans_dialogue once the speech bubble is dismissed (or skipped when
+-- the turn has no dialogue). Loads the attack and begins the attack phase.
+function Battle:onDialogueDone()
     local turn = self.turnManager:current()
     if turn and turn.attack then
         if not self.sequencer:loadAttack(turn.attack) then

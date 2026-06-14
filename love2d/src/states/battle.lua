@@ -164,15 +164,6 @@ function Battle:startBattle()
     end
 end
 
-function Battle:loadAttackSequence(name)
-    -- Kept for compatibility; Normal/Practice now goes through startBattle directly.
-    if self.sequencer:loadAttack("sans_intro") then
-        Audio:playMusic("megalovania", true)
-    else
-        self.useTestSpawner = true
-    end
-end
-
 function Battle:loadSingleAttack(attackName)
     if self.sequencer:loadAttack(attackName) then
         self.currentAttack = attackName
@@ -220,13 +211,20 @@ function Battle:onAttackFinished()
 end
 
 -- Called by player_turn / action_resolve after the player has chosen an action.
--- Checks for a pending dunked ending; otherwise transitions to sans_dialogue.
+-- Checks for a pending dunked ending; otherwise transitions to sans_dialogue,
+-- or directly to onDialogueDone when the current turn has no dialogue line
+-- (avoids a re-entrant setPhase inside sans_dialogue:enter).
 function Battle:onPlayerActionDone()
     if self.pendingEnding == "dunked" then
         self:triggerDunked()
         return
     end
-    self:setPhase("sans_dialogue")
+    local line = self.turnManager and self.turnManager:current() and self.turnManager:current().dialogue or ""
+    if line == "" then
+        self:onDialogueDone()
+    else
+        self:setPhase("sans_dialogue")
+    end
 end
 
 -- Called by sans_dialogue once the speech bubble is dismissed (or skipped when

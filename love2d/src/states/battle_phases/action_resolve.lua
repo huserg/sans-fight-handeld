@@ -122,8 +122,7 @@ end
 
 function ActionResolve:setupSpare(battle)
     if isSpareMoment(battle) then
-        -- The dunked ending: mark it and proceed normally for now.
-        -- TODO: trigger the dunked ending cutscene (Task 8).
+        -- Dunked ending: set the flag so onPlayerActionDone triggers the cutscene.
         battle.pendingEnding = "dunked"
         self.dlg:show("* ...", DLG_X, DLG_Y, "white")
         self.onDismiss = function()

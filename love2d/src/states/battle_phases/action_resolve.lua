@@ -6,7 +6,6 @@
 local Input    = require("src.systems.input")
 local Audio    = require("src.systems.audio")
 local Dialogue = require("src.ui.dialogue")
-local Fonts    = require("src.ui.fonts")
 
 -- Wide zone bounds used as the dialogue-box area.
 local WIDE_X1, WIDE_Y1, WIDE_X2, WIDE_Y2 = 33, 251, 608, 391
@@ -28,11 +27,11 @@ local function applyHeal(battle, amount)
     return battle.game.hp - before
 end
 
--- Return true when the current fight turn has a spare_offer or final event.
+-- Return true when the current fight turn is the spare-offer turn.
 local function isSpareMoment(battle)
     if not battle.turnManager then return false end
     local turn = battle.turnManager:current()
-    return turn ~= nil and (turn.event == "spare_offer" or turn.event == "final")
+    return turn ~= nil and turn.event == "spare_offer"
 end
 
 -- ---------------------------------------------------------------------------
@@ -48,9 +47,6 @@ function ActionResolve:enter(battle)
 
     -- Create a fresh Dialogue object for this message.
     self.dlg = Dialogue.new()
-
-    -- Flag set once the action effect has been applied (avoid double-apply on re-draw).
-    self.effectApplied = false
 
     -- Callback invoked after the player dismisses the message.
     -- Assigned per action kind below.
@@ -139,7 +135,7 @@ function ActionResolve:setupSpare(battle)
             DLG_X, DLG_Y, "white"
         )
         self.onDismiss = function()
-            battle:onPlayerActionDone()
+            battle:setPhase("player_turn")
         end
     end
 end

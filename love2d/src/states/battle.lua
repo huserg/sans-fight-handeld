@@ -9,6 +9,7 @@ local CombatZone = require("src.entities.combat_zone")
 local PlayerHeart = require("src.entities.player_heart")
 local Sans = require("src.entities.sans")
 local BattleUI = require("src.ui.battle_ui")
+local Dialogue = require("src.ui.dialogue")
 local Bone = require("src.entities.bone")
 local AttackSequencer = require("src.systems.attack_sequencer")
 
@@ -85,6 +86,9 @@ function Battle:enter(game)
 
     -- Create Battle UI
     self.battleUI = BattleUI.new()
+
+    -- Speech bubble for in-attack Sans flavor text (shown above Sans)
+    self.sansBubble = Dialogue.new()
 
     -- Create sequencer
     self.sequencer = AttackSequencer.new(self)
@@ -187,6 +191,11 @@ end
 function Battle:showSansText(text)
     self.sansText = text
     self.sansTextTimer = 2.0
+    if self.sansBubble and self.sans then
+        -- Bubble above Sans's head (not over his face); shown fully at once
+        self.sansBubble:show(text, self.sans.x, self.sans.y - 90, "white")
+        self.sansBubble:skip()
+    end
 end
 
 function Battle:onAttackFinished()
@@ -447,11 +456,9 @@ function Battle:drawArena()
     -- Draw Battle UI (bottom bar with buttons and HP)
     self.battleUI:draw(self.game.hp, self.game.maxHp, self.playerHeart.karma)
 
-    -- Draw Sans text if active
-    if self.sansText then
-        love.graphics.setColor(1, 1, 1)
-        Fonts.sans:setScale(1)
-        Fonts.sans:draw(self.sansText, 320, 100, "center")
+    -- Draw Sans flavor text in a bubble above Sans
+    if self.sansText and self.sansBubble then
+        self.sansBubble:draw()
     end
 end
 

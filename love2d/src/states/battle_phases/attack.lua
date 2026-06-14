@@ -44,6 +44,7 @@ function AttackPhase:update(dt, battle)
         battle.sansTextTimer = battle.sansTextTimer - dt
         if battle.sansTextTimer <= 0 then
             battle.sansText = nil
+            if battle.sansBubble then battle.sansBubble:hide() end
         end
     end
 

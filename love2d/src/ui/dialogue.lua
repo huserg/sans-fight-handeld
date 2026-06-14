@@ -176,44 +176,43 @@ function Dialogue:draw()
         end
     end
 
-    local textHeight = #lines * Fonts.sans:getHeight()
-    local bubbleWidth = maxLineWidth + BUBBLE_PADDING_X * 2
-    local bubbleHeight = textHeight + BUBBLE_PADDING_Y * 2
+    local lineHeight = Fonts.sans:getHeight()
+    local textHeight = #lines * lineHeight
+    local bubbleWidth = math.max(maxLineWidth + BUBBLE_PADDING_X * 2, 40)
+    local bubbleHeight = math.max(textHeight + BUBBLE_PADDING_Y * 2, 24)
 
-    -- Minimum size
-    bubbleWidth = math.max(bubbleWidth, 40)
-    bubbleHeight = math.max(bubbleHeight, 24)
+    -- Bubble bottom sits at self.y and grows upward (tail points down at Sans)
+    local bx = self.x - bubbleWidth / 2
+    local by = self.y - bubbleHeight
+    local black = (self.style == "black")
+    local fill = black and { 0, 0, 0 } or { 1, 1, 1 }
+    local edge = black and { 1, 1, 1 } or { 0, 0, 0 }
+    local tailH = 8
 
-    -- Draw bubble background (9-slice or scaled)
-    local quad = self.style == "black" and self.blackQuad or self.whiteQuad
+    -- Filled box + downward tail (drawn cleanly instead of stretching a sprite)
+    love.graphics.setColor(fill)
+    love.graphics.rectangle("fill", bx, by, bubbleWidth, bubbleHeight)
+    love.graphics.polygon("fill",
+        self.x - 6, by + bubbleHeight - 1,
+        self.x + 6, by + bubbleHeight - 1,
+        self.x, by + bubbleHeight + tailH)
 
-    -- For now, draw scaled bubble
-    local scaleX = bubbleWidth / self.frameWidth
-    local scaleY = bubbleHeight / (self.frameHeight - 8)
+    -- Border around the box and along the tail edges
+    love.graphics.setColor(edge)
+    love.graphics.setLineWidth(2)
+    love.graphics.rectangle("line", bx, by, bubbleWidth, bubbleHeight)
+    love.graphics.line(self.x - 6, by + bubbleHeight, self.x, by + bubbleHeight + tailH)
+    love.graphics.line(self.x + 6, by + bubbleHeight, self.x, by + bubbleHeight + tailH)
+    love.graphics.setLineWidth(1)
 
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.draw(
-        self.bubbleImage,
-        quad,
-        self.x - bubbleWidth / 2,
-        self.y - bubbleHeight,
-        0,
-        scaleX,
-        scaleY
-    )
-
-    -- Draw text
-    if self.style == "black" then
-        love.graphics.setColor(1, 1, 1)
-    else
-        love.graphics.setColor(0, 0, 0)
-    end
-
-    local textY = self.y - bubbleHeight + BUBBLE_PADDING_Y
+    -- Draw text (same color as the border: black on white, white on black)
+    love.graphics.setColor(edge)
+    local textY = by + BUBBLE_PADDING_Y
     for _, line in ipairs(lines) do
         Fonts.sans:draw(line, self.x, textY, "center")
-        textY = textY + Fonts.sans:getHeight()
+        textY = textY + lineHeight
     end
+    love.graphics.setColor(1, 1, 1)
 
     -- Draw continue indicator if complete
     if self.complete and #self.queue > 0 then

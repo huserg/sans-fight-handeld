@@ -35,6 +35,10 @@ function PlayerTurn:enter(battle)
     -- Hide the heart during the menu phase.
     battle.hideHeart = true
 
+    -- Clear any leftover in-attack Sans flavor text so it can't bleed into the menu
+    battle.sansText = nil
+    if battle.sansBubble then battle.sansBubble:hide() end
+
     -- Fresh menu each turn so cursor always starts at FIGHT.
     -- Pass the battle-level items table so used state persists across turns.
     self.menu = BattleMenu.new(battle.items)

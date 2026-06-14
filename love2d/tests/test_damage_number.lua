@@ -1,0 +1,21 @@
+local DamageNumber = require("src.ui.damage_number")
+
+describe("DamageNumber", function()
+    it("rises over time and dies after its lifetime", function()
+        local n = DamageNumber.new("MISS", 100, 100)
+        assert_true(not n.dead)
+        local y0 = n.y
+        n:update(0.1)
+        assert_true(n.y < y0, "rises")
+        n:update(1.0)
+        assert_true(n.dead, "gone after ~1s")
+    end)
+
+    it("keeps its text and gray flag for MISS", function()
+        local n = DamageNumber.new("MISS", 0, 0)
+        assert_eq(n.text, "MISS")
+        assert_true(n.isMiss)
+        local hit = DamageNumber.new("9", 0, 0)
+        assert_true(not hit.isMiss)
+    end)
+end)

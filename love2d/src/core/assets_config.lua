@@ -176,9 +176,10 @@ local AssetsConfig = {
             heartOffsetY = 12
         },
         combatZone = {
-            defaultX1 = 239,
-            defaultY1 = 226,
-            defaultX2 = 404,
+            -- Original MenuBattle box (33,251,608,391); attacks resize per-CSV
+            defaultX1 = 33,
+            defaultY1 = 251,
+            defaultX2 = 608,
             defaultY2 = 391
         }
     }

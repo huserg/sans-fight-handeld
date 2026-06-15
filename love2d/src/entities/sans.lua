@@ -127,7 +127,9 @@ function Sans.new(x, y)
     self.showSweat = false
 
     -- Idle animation frames
-    self.idleFrames = {0, 1}
+    -- Default idle holds the arms-down pose (frame 0). Frame 1 is the HandUp pose,
+    -- which the original only shows for specific attacks, not while idle.
+    self.idleFrames = {0}
     self.currentIdleIndex = 1
     self.animateIdle = true
 

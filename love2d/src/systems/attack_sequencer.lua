@@ -18,36 +18,51 @@ AttackSequencer.__index = AttackSequencer
 -- Safety net against malformed CSV programs (0-delay infinite loops)
 local MAX_LINES_PER_FRAME = 2000
 
--- Spawn a moving wall of vertical bones that leaves a sine-wave gap.
--- The wall streams in from one side (sign of spacing) at the given speed.
+-- Repeated spawns are offset *along the travel axis* (matches the original
+-- BoneVRepeat/BoneHRepeat/PlatformRepeat: X = StartX - cos(Dir*90)*Spacing*i,
+-- Y = StartY - sin(Dir*90)*Spacing*i, with direction 0=right,1=down,2=left,3=up).
+local DIR_COS = { [0] = 1, [1] = 0, [2] = -1, [3] = 0 }
+local DIR_SIN = { [0] = 0, [1] = 1, [2] = 0, [3] = -1 }
+local function repeatOffset(direction, spacing, i)
+    local d = direction or 0
+    spacing = spacing or 0
+    return -(DIR_COS[d] or 0) * spacing * i, -(DIR_SIN[d] or 0) * spacing * i
+end
+
+-- Spawn a moving wall of vertical bone pairs leaving a sine-wave gap, matching the
+-- original SineBones: fixed 39px gap, sine amplitude 28 at frequency i/3, columns
+-- entering from BBoxRight (spacing > 0, moving left) or BBoxLeft (spacing < 0, right).
 local function spawnSineBones(seq, count, spacing, speed, height)
     local cz = seq.battle.combatZone
     if not cz then return end
 
-    local x1, y1, x2, y2 = cz:getInnerBounds()
-    local centerY = (y1 + y2) / 2
-    local gap = math.max(height, 24)
-    local amp = math.max(0, (y2 - y1 - gap) / 2 - 6)
+    local zx1, zy1, zx2, zy2 = cz:getBounds()
 
-    local step = math.abs(spacing)
-    local movingLeft = spacing < 0
-    local vx = movingLeft and -speed or speed
-    local entryX = movingLeft and x2 or x1
-
-    local function addBone(x, top, length)
-        if length <= 8 then return end
+    local function addBone(x, top, length, direction)
+        if length <= 1 then return end
         local bone = Bone.new(x, top + length / 2, length, "vertical", 0)
+        local vx = (direction == 0) and speed or -speed
         bone:setVelocity(vx, 0)
         bone:setLifetime(10)
         seq.battle:addEntity(bone)
     end
 
-    for n = 0, count - 1 do
-        local colX = movingLeft and (entryX + n * step) or (entryX - n * step)
-        local gapCenter = centerY + amp * math.sin(n * 0.5)
-        addBone(colX, y1, (gapCenter - gap / 2) - y1)            -- top bone
-        local botTop = gapCenter + gap / 2
-        addBone(colX, botTop, y2 - botTop)                       -- bottom bone
+    for i = 0, count - 1 do
+        local x, direction
+        if spacing < 0 then
+            x = zx1 + spacing * i
+            direction = 0                                   -- enters from left, moves right
+        else
+            x = zx2 + spacing * i
+            direction = 2                                   -- enters from right, moves left
+        end
+
+        local sine = math.floor(math.sin(i / 3) * 28)
+        local topY = zy1 + 6
+        addBone(x, topY, height + sine, direction)          -- top bone
+
+        local botY = zy1 + 6 + height + sine + 39           -- 39px gap below the top bone
+        addBone(x, botY, (zy2 - 5) - botY, direction)       -- bottom bone
     end
 end
 
@@ -176,9 +191,9 @@ function AttackSequencer:registerHandlers()
         local x, y, length, direction, speed, count, spacing =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
         if x and y and length and count then
-            spacing = spacing or 0
             for n = 0, count - 1 do
-                spawnBone("vertical", x + n * spacing, y, length, direction, speed)
+                local dx, dy = repeatOffset(direction, spacing, n)
+                spawnBone("vertical", x + dx, y + dy, length, direction, speed)
             end
         end
     end
@@ -188,9 +203,9 @@ function AttackSequencer:registerHandlers()
         local x, y, length, direction, speed, count, spacing =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
         if x and y and length and count then
-            spacing = spacing or 0
             for n = 0, count - 1 do
-                spawnBone("horizontal", x, y + n * spacing, length, direction, speed)
+                local dx, dy = repeatOffset(direction, spacing, n)
+                spawnBone("horizontal", x + dx, y + dy, length, direction, speed)
             end
         end
     end
@@ -292,6 +307,8 @@ function AttackSequencer:registerHandlers()
 
     self.handlers["SansSlam"] = function(params)
         if self.battle.playerHeart then
+            -- The original forces blue (gravity) mode before slamming the soul.
+            self.battle.playerHeart:setMode(Constants.HEARTMODE_BLUE)
             self.battle.playerHeart:slam(params[1] or 1)
         end
     end
@@ -337,7 +354,8 @@ function AttackSequencer:registerHandlers()
         local x, y, width = params[1], params[2], params[3]
         if x and y and width then
             self.battle:addEntity(
-                Platform.new(x, y, width, params[4], params[5], params[6]))
+                Platform.new(x, y, width, params[4], params[5], params[6],
+                    self.battle.combatZone))
         end
     end
 
@@ -346,10 +364,11 @@ function AttackSequencer:registerHandlers()
         local x, y, width, direction, speed, count, spacing =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7]
         if x and y and width and count then
-            spacing = spacing or 0
             for n = 0, count - 1 do
+                local dx, dy = repeatOffset(direction, spacing, n)
                 self.battle:addEntity(
-                    Platform.new(x + n * spacing, y, width, direction, speed))
+                    Platform.new(x + dx, y + dy, width, direction, speed, 0,
+                        self.battle.combatZone))
             end
         end
     end

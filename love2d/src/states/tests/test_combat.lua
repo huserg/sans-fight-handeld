@@ -8,7 +8,7 @@ local CombatZone = require("src.entities.combat_zone")
 local TestCombat = {}
 
 local presets = {
-    { name = "Default", x1 = 239, y1 = 226, x2 = 404, y2 = 391 },
+    { name = "Default", x1 = 33, y1 = 251, x2 = 608, y2 = 391 },
     { name = "Wide", x1 = 133, y1 = 251, x2 = 508, y2 = 391 },
     { name = "Tall", x1 = 241, y1 = 186, x2 = 406, y2 = 391 },
     { name = "Small", x1 = 270, y1 = 280, x2 = 370, y2 = 360 },

@@ -9,11 +9,14 @@ HpBar.__index = HpBar
 -- Default layout constants (standalone / test_hp usage)
 local DEFAULT_BAR_X = 30
 local DEFAULT_BAR_Y = 400
-local BAR_WIDTH = 120
+-- Original HUD: HPBackground width = floor(MaxHP * 1.2) = 110 at MaxHP 92,
+-- "KR" label persistent before the value, value zero-padded to 2 digits.
+local BAR_WIDTH = 110
 local BAR_HEIGHT = 21
 local BAR_INNER_OFFSET = 2
 local LABEL_OFFSET_X = -2
-local VALUE_OFFSET_X = 140
+local KR_OFFSET_X = 150
+local VALUE_OFFSET_X = 180
 
 -- Optional x/y override so callers (e.g. battle_ui) can position the bar
 -- at a custom location without duplicating drawing logic.
@@ -86,17 +89,16 @@ function HpBar:draw(currentHp, maxHp, karma)
         )
     end
 
-    -- Draw HP value text
+    -- Persistent "KR" label before the value (matches the original HUD, where it
+    -- sits between the bar and the HP readout regardless of karma).
     love.graphics.setColor(1, 1, 1)
-    local hpText = tostring(math.floor(math.max(0, currentHp - karma))) .. " / " .. tostring(maxHp)
     Fonts.battle:setScale(2)
-    Fonts.battle:draw(hpText, bx + VALUE_OFFSET_X, by + 5, "left")
+    Fonts.battle:draw("KR", bx + KR_OFFSET_X, by + 5, "left")
 
-    -- Draw KR label next to HP values when karma is active
-    if karma > 0 then
-        love.graphics.setColor(0.6, 0, 0.6)
-        Fonts.battle:draw("KR", bx + VALUE_OFFSET_X + 80, by + 5, "left")
-    end
+    -- Draw HP value text, zero-padded to two digits as in the original.
+    local hp = math.floor(math.max(0, currentHp - karma))
+    local hpText = string.format("%02d / %d", hp, maxHp)
+    Fonts.battle:draw(hpText, bx + VALUE_OFFSET_X, by + 5, "left")
 end
 
 return HpBar

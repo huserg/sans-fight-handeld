@@ -22,11 +22,11 @@ local Constants = {
     -- Input deadzone for analog sticks
     STICK_DEADZONE = 0.25,
 
-    -- Combat zone default bounds
+    -- Combat zone default bounds (the original MenuBattle box: 33,251,608,391)
     COMBAT_ZONE = {
-        x1 = 239,
-        y1 = 226,
-        x2 = 404,
+        x1 = 33,
+        y1 = 251,
+        x2 = 608,
         y2 = 391
     },
 

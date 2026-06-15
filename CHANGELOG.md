@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-06-15
+
+### Fixed (attack fidelity vs. the Construct 2 original)
+
+Source-level audit of the port's opcode interpreter against the original
+`Event sheets/Timeline.xml` + `Battle.xml`. The VM, sequencer and timing model were
+confirmed faithful; the divergences below were in the opcode handlers and setup.
+Full analysis in `docs/comparison/CATALOG.md`.
+
+- BoneVRepeat / BoneHRepeat placement: repeated bones are now offset along their
+  travel axis (`StartX - cos(dir*90)*spacing*i`, `StartY - sin(dir*90)*spacing*i`) as
+  in the original, instead of always offsetting on +X. Affects every attack using
+  BoneVRepeat (59 call sites).
+- PlatformRepeat placement: same axis/sign fix.
+- Platform reverse/bounce: a reverse platform now ping-pongs inside the combat zone
+  (flipping 0<->2 / 1<->3 at the edges) instead of negating its speed once and flying
+  off-screen. Restores the rideable platforms in the platform attacks.
+- SineBones: reimplemented to the original formula (fixed 39px gap, sine amplitude 28
+  at frequency i/3, columns entering from the zone edge by spacing*i).
+- SansSlam: now forces the soul into blue (gravity) mode before slamming.
+- Horizontal bones are no longer clipped to the combat zone (original keeps `BoneH` on
+  the unclipped layer); vertical bones stay clipped.
+- Combat-zone default is now the original menu box (33,251,608,391) instead of a small
+  centered square, so attacks that skip their own resize play in the correct area.
+
+### Changed
+
+- Player level now reads LV 19 (the genocide Sans fight), was LV 1.
+- Sans's idle pose holds the arms-down frame instead of cycling to HandUp, so he no
+  longer appears to gesture continuously while idle.
+- HP/KR readout matches the original: persistent `KR` label before the value, bar width
+  110 (`floor(MaxHP*1.2)`), and the HP value zero-padded to two digits ("92 / 92").
+
 ## [2.1.0] - 2026-06-14
 
 ### Added (Normal Mode)

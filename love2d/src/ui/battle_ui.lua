@@ -47,7 +47,7 @@ function BattleUI.new()
 
     -- Player info
     self.playerName = "CHARA"
-    self.playerLV = 1
+    self.playerLV = 19
 
     -- Delegate HP bar rendering to the shared HpBar component
     self.hpBar = HpBar.new(HP_BAR_ORIGIN_X, HP_BAR_ORIGIN_Y)

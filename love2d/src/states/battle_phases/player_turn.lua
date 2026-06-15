@@ -87,13 +87,13 @@ function PlayerTurn:enter(battle)
     self.showStrike   = false
 end
 
--- Default combat zone bounds (attacks resize via their own CSV commands on enter).
-local DEFAULT_X1, DEFAULT_Y1, DEFAULT_X2, DEFAULT_Y2 = 239, 226, 404, 391
+-- Default combat zone bounds: the original menu box (33,251,608,391). Attacks
+-- resize from here via their own CSV commands; an attack that skips its resize
+-- plays in this box, as in the original.
+local DEFAULT_X1, DEFAULT_Y1, DEFAULT_X2, DEFAULT_Y2 = 33, 251, 608, 391
 
 function PlayerTurn:exit(battle)
     battle.hideHeart = false
-    -- Restore the narrow default zone so attacks that skip their own resize
-    -- do not inherit the wide player-turn area.
     battle.combatZone:setSize(DEFAULT_X1, DEFAULT_Y1, DEFAULT_X2, DEFAULT_Y2)
 end
 

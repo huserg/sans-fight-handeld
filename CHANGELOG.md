@@ -26,6 +26,12 @@ Full analysis in `docs/comparison/CATALOG.md`.
   the unclipped layer); vertical bones stay clipped.
 - Combat-zone default is now the original menu box (33,251,608,391) instead of a small
   centered square, so attacks that skip their own resize play in the correct area.
+- PortMaster launcher (`sansfight/launch.sh`) is now portable across firmwares and CPU
+  architectures: it resolves the control folder, reads `$DEVICE_ARCH`, runs
+  `love.$DEVICE_ARCH` from the PortMaster `love_11.5` runtime, logs to `run.log`, and
+  prints a clear message when the runtime is missing instead of crashing silently. (The
+  previous launcher hardcoded the aarch64 path, which crashed on other devices / when the
+  runtime wasn't installed.)
 
 ### Changed
 

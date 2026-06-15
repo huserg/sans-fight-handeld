@@ -16,27 +16,39 @@ re-implementation of the Construct 2 attack VM. See
 - [PortMaster](https://portmaster.games/) installed, including the **`love_11.5` runtime**
   (PortMaster fetches it automatically on first launch of a LÖVE port if missing).
 
-### Install
+The game runs on the PortMaster **`love_11.5` runtime**. Install **through PortMaster**
+so that runtime is fetched automatically — hand-copying the zip skips that step and the
+port will crash at launch on any device that doesn't already have the runtime.
 
-A ready-to-install port lives in [`dist/release/`](dist/release/)
-(`sansfight-port-<version>.zip`). It contains a `Sans Fight.sh` launcher and a
-`sansfight/` folder, and installs into the device's ports directory.
+### Install (recommended: PortMaster autoinstall)
+
+1. Copy `dist/release/sansfight-port-v2.1.1.zip` into PortMaster's **autoinstall** folder
+   on the device (Knulli/Batocera): `/userdata/system/.local/share/PortMaster/autoinstall/`
+   (create it if missing). Use the network share or:
+   ```bash
+   scp dist/release/sansfight-port-v2.1.1.zip \
+     root@<device-ip>:/userdata/system/.local/share/PortMaster/autoinstall/
+   #   default SSH password: linux
+   ```
+2. Open **PortMaster** on the device. It installs the port **and downloads the
+   `love_11.5` runtime** if missing.
+3. **Sans Fight** appears under **Ports**.
+
+### Install (manual — only if the love_11.5 runtime is already present)
 
 ```bash
-# From your PC, copy the release zip to the device
 scp dist/release/sansfight-port-v2.1.1.zip root@<device-ip>:/userdata/roms/ports/
-#   default Knulli/Batocera SSH password: linux
-
-# On the device, extract into the ports folder
 ssh root@<device-ip>
 cd /userdata/roms/ports
 unzip -o sansfight-port-v2.1.1.zip && rm sansfight-port-v2.1.1.zip
 ```
+Refresh the game list (or reboot). If the port crashes instantly, the runtime is missing —
+install it via PortMaster (autoinstall above) or copy
+`runtimes/love_11.5/` from a device that has it.
 
-Refresh the game list (or reboot). **Sans Fight** appears under **Ports**.
-
-The launcher runs the game from `/userdata/roms/ports/sansfight/game` with the PortMaster
-LÖVE 11.5 runtime — no extra files needed.
+The launcher (`sansfight/launch.sh`) is portable across PortMaster firmwares and picks the
+runtime for the device's architecture (`love.$DEVICE_ARCH`); on a missing runtime it writes
+a clear message to `sansfight/run.log` instead of crashing silently.
 
 ---
 

@@ -24,13 +24,13 @@ A ready-to-install port lives in [`dist/release/`](dist/release/)
 
 ```bash
 # From your PC, copy the release zip to the device
-scp dist/release/sansfight-port-2.1.1.zip root@<device-ip>:/userdata/roms/ports/
+scp dist/release/sansfight-port-v2.1.1.zip root@<device-ip>:/userdata/roms/ports/
 #   default Knulli/Batocera SSH password: linux
 
 # On the device, extract into the ports folder
 ssh root@<device-ip>
 cd /userdata/roms/ports
-unzip -o sansfight-port-2.1.1.zip && rm sansfight-port-2.1.1.zip
+unzip -o sansfight-port-v2.1.1.zip && rm sansfight-port-v2.1.1.zip
 ```
 
 Refresh the game list (or reboot). **Sans Fight** appears under **Ports**.

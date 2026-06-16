@@ -177,3 +177,107 @@ device/local still recommended for the platform and sine attacks.
 
 After each fix, re-run the attack(s) that use the opcode and compare to the live
 original (jcw87.github.io/c2-sans-fight attack tester) for the affected attack only.
+
+---
+
+# Tester feedback — round 1 (2026-06-16)
+
+Played on-device (RG35XX-SP / Knulli) by a tester who knows the original well.
+**Positive baseline:** bone/platform *timing and placement* are good (the v2.1.1 `*Repeat`
+fix landed), and Phase-2 attack chaining feels properly random. The remaining issues are
+mostly **soul physics, the damage model, gravity, gaster blasters, audio, and loop length** —
+several are cross-cutting root causes that each explain many per-attack complaints.
+
+## Cross-cutting root causes (fix first — each affects many attacks)
+
+### R1 — Damage / karma model is wrong (HIGH; every attack; visible HP bug)
+- **Original:** contact deals ~**1 HP per frame** while the soul overlaps a bullet; a second
+  **purple KR (karma) bar** accumulates from hits and then **drains real HP over time** (the
+  "inertia"). 
+- **Port:** invincibility-frame **chunk** damage (`battle.lua:490, 525-528`) and karma that
+  merely **decays without removing HP** (`player_heart.lua:186-192`) — so `hp - karma` rises
+  and the **HP bar appears to refill by itself**.
+- **Fix:** per-frame contact damage; karma adds on hit and drains `game.hp` over time; the
+  purple bar shows pending karma as inertia.
+
+### R2 — Blue-soul physics too fast / too light (HIGH; all blue attacks)
+- **Original** (`Battle.xml` PlayerMovement): `HEART_JUMP_STRENGTH=180`,
+  `HEART_JUMPHOLD_CUTOFF=30`, `MaxFallSpeed=750`, gravity via the Platform/CustomMovement model.
+- **Port:** `JUMP_SPEED=-350`, `GRAVITY=800`, `MAX_FALL_SPEED=400` (`player_heart.lua`) — jump
+  and fall feel too quick and weightless.
+- **Fix:** retune jump/gravity/max-fall to the original feel (heavier, matching the C2 values).
+
+### R3 — Gravity-direction changes not implemented (HIGH; P2 A4/A5/A9 + final)
+- **Original:** Sans rotates gravity (up/down/left/right); the soul **rotates** and falls toward
+  the new direction; the **final** is a **left-gravity side-scroller** (soul pinned to the left,
+  point facing right, moving only up/down). Logic at `Battle.xml:3822-4350` ("Handle gravity",
+  "Sideways movement when gravity is left/right"), driven by the heart **angle** (not a CSV opcode).
+- **Port:** no gravity opcode/handler; the soul always falls **down** and stays **vertical**.
+  `player_heart` has a `gravityDirection` field but nothing sets it.
+- **Fix:** derive gravity direction from the heart angle / slam per `Battle.xml`; rotate the
+  sprite; implement the side-scroller for the final.
+
+### R4 — "Loop" attacks end too early (HIGH/MED; many attacks)
+- Looping bone/platform attacks stop sooner than the original. The VM + timing engine were
+  verified faithful, so investigate **EndAttack delay vs. turn fill-time** and whether the loop
+  should run for the whole turn duration.
+
+### R5 — Gaster blasters broken (MED; P1 A1, P2 A2/A6, final ring)
+- Too **small** (original scales by size 0/1/2 → `ImageWidth*2` or `*3`), **no sound**, **beam
+  lasts only a few frames** (should charge ~0.5s then fire), sometimes **invisible / off-screen**.
+
+### R6 — Blue/orange bone mechanic missing (MED; P1 A3)
+- A **blue bone** must deal **no damage when the soul is still**, and behave like a normal bone
+  when **moving** (blue "stop sign"). Port damages regardless of motion.
+
+### R7 — Audio / music cues (MED)
+- Blaster SFX missing; per-frame damage SFX; **music should START at the end of P1 A1**; **music
+  should CUT at A15** (Sans is tired).
+
+### R8 — Sans sprite glitches during gravity attacks (MED/cosmetic)
+- Sprite "falls apart" when Sans plays with gravity — tied to R3 + SansX/scroll/animation.
+
+### R9 — Cosmetic / artistic (LOW)
+- Platform texture looks odd (P1 A5/A6). Dialogue is a hybrid of Undertale / Bad Time Simulator
+  (artistic choice to settle).
+
+## Per-attack notes
+
+**Phase 1**
+- A1 — gaster intro: blasters too small, no sound [R5,R7]; music should start at attack end [R7].
+- A2 — [R2][R4].
+- A3 — blue bones don't work (should be safe when still) [R6]; [R2][R4].
+- A4 — [R2][R4]; bones should arrive **2 by 2**; port sends 2 then 1 then stops (spawn/loop bug).
+- A5 — platform texture weird [R9]; [R2].
+- A6 — as A5 [R9][R2].
+- A7 — [R4] (more noticeable on platforms).
+- A8 — [R4]; must also dodge bones on the **return** trip (missing).
+- A9 — missing **side blasters** (alternate L/R, random among 3 heights) [R5]; [R4] on platforms.
+- A10 — as A8.
+- A11/A12/A13 — [R2][R4].
+- A14 — as A9.
+- A15 — **not an attack**: Sans is tired, music should cut [R7].
+
+**Phase 2 ("the REAL battle")**
+- A1 — clean, random chaining; most faithful; [R2] but no [R4] (too fast to loop).
+- A2 — blasters invisible + no sound [R5,R7].
+- A3 — as A1.
+- A4 — gravity change: soul still falls down + stays vertical; missing SFX [R3,R7].
+- A5 — as A4 [R3].
+- A6 — blasters too small, sometimes off-screen, no sound, beam only a few frames [R5,R7].
+- A7 — [R4], else correct.
+- A8 — as A1.
+- A9 — as A4 [R3].
+- **Final** — chains A4 then A7 (same issues); the long line should be a **left-gravity
+  side-scroller** (soul pinned left, point right, up/down only) but stays down; soul teleports
+  left and there are **no obstacles** (too easy); then an A4-like section; the **blaster ring is
+  missing**; the **final gravity-slam animation** doesn't work (depends on R3); the final hit
+  exists in Undertale but not Bad Time Simulator (artistic choice).
+
+## Next-pass priority
+1. **R1** damage/karma model (affects everything; fixes the HP-refill bug).
+2. **R2** blue-soul physics (affects all blue attacks).
+3. **R3** gravity direction + side-scroller (unblocks P2 A4/A5/A9 + final).
+4. **R4** loop duration.
+5. **R5** blasters · **R6** blue bones · **R7** audio/music.
+6. **R8** sprite glitches · **R9** cosmetic/artistic.

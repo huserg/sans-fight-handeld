@@ -38,17 +38,31 @@ port will crash at launch on any device that doesn't already have the runtime.
 
 ```bash
 scp dist/release/sansfight-port-v2.1.1.zip root@<device-ip>:/userdata/roms/ports/
-ssh root@<device-ip>
+ssh root@<device-ip>           # default SSH password: linux
 cd /userdata/roms/ports
 unzip -o sansfight-port-v2.1.1.zip && rm sansfight-port-v2.1.1.zip
+# REQUIRED: make the launch scripts executable (a manual/network-share copy
+# strips the execute bit, and then EmulationStation can't run the port).
+chmod +x "Sans Fight.sh" sansfight/launch.sh
 ```
-Refresh the game list (or reboot). If the port crashes instantly, the runtime is missing —
-install it via PortMaster (autoinstall above) or copy
-`runtimes/love_11.5/` from a device that has it.
+Refresh the game list (or reboot). **Sans Fight** appears under **Ports**.
 
 The launcher (`sansfight/launch.sh`) is portable across PortMaster firmwares and picks the
-runtime for the device's architecture (`love.$DEVICE_ARCH`); on a missing runtime it writes
-a clear message to `sansfight/run.log` instead of crashing silently.
+runtime for the device's architecture (`love.$DEVICE_ARCH`); it logs to `sansfight/run.log`
+from the first line, so any launch problem is captured there.
+
+### Troubleshooting
+
+- **Selecting the port does nothing / black flash, no `run.log` created** → the launch
+  scripts lost their execute bit (typical after a network-share copy). Fix:
+  `chmod +x "/userdata/roms/ports/Sans Fight.sh" /userdata/roms/ports/sansfight/launch.sh`.
+  (Installing via PortMaster autoinstall sets this automatically — only manual copies need it.)
+- **`run.log` says "Love2D 11.5 runtime not found"** → the `love_11.5` runtime isn't
+  installed; install it via PortMaster (autoinstall above) or copy `runtimes/love_11.5/`
+  from a device that has it.
+- **Crash / wrong behaviour only when run over SSH** → expected: launching `launch.sh`
+  from an SSH session while EmulationStation is still running makes both fight for the
+  display and input. Always launch from the **Ports** menu, not SSH.
 
 ---
 

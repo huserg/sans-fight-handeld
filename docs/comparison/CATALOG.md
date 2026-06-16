@@ -272,7 +272,13 @@ several are cross-cutting root causes that each explain many per-attack complain
   side-scroller** (soul pinned left, point right, up/down only) but stays down; soul teleports
   left and there are **no obstacles** (too easy); then an A4-like section; the **blaster ring is
   missing**; the **final gravity-slam animation** doesn't work (depends on R3); the final hit
-  exists in Undertale but not Bad Time Simulator (artistic choice).
+  exists in Undertale but not Bad Time Simulator — **decision: add it** (user, 2026-06-16).
+
+## Decisions (user, 2026-06-16)
+- Implement the **full R1→R9 pass**.
+- Dialogues align to **Bad Time Simulator** wording (R9).
+- **Add** the Undertale-style final hit even though it's absent from Bad Time Simulator.
+- Implementation plan: `docs/superpowers/plans/2026-06-16-fidelity-tester-r1-r9.md`.
 
 ## Next-pass priority
 1. **R1** damage/karma model (affects everything; fixes the HP-refill bug).

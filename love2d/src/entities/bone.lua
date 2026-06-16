@@ -85,8 +85,8 @@ function Bone.new(x, y, length, orientation, color)
     -- Damage
     self.damage = 1
 
-    -- Karma (poison damage)
-    self.karma = 1
+    -- Karma (poison damage). Original bones deal 1 damage / 6 karma.
+    self.karma = 6
 
     -- Lifetime
     self.dead = false

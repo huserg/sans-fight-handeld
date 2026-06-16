@@ -11,6 +11,7 @@ local Sans = require("src.entities.sans")
 local BattleUI = require("src.ui.battle_ui")
 local Dialogue = require("src.ui.dialogue")
 local Bone = require("src.entities.bone")
+local Karma = require("src.systems.karma")
 local AttackSequencer = require("src.systems.attack_sequencer")
 
 local TurnManager = require("src.systems.turn_manager")
@@ -80,6 +81,13 @@ function Battle:enter(game)
 
     -- Create player heart
     self.playerHeart = PlayerHeart.new(self.combatZone)
+
+    -- Karma (KR) model: owns the per-frame contact damage + inertia drain.
+    -- HP stays authoritative on game.hp; the model is synced around it.
+    self.karma = Karma.new(game.hp)
+    -- Battle clock and last-contact-damage timestamp drive the 0.033s gate.
+    self.battleClock = 0
+    self.lastDamageTime = -1
 
     -- Create Sans (centered above the combat zone, like the original)
     self.sans = Sans.new(320, 168)
@@ -486,56 +494,66 @@ function Battle:updateEntities(dt)
     end
 end
 
-function Battle:checkCollisions()
-    if self.playerHeart.invincible then
-        return
-    end
+-- Per-frame contact damage + KR inertia, matching the original model
+-- (Battle.xml: DamagePlayer + KR cap/clamp/drain). No invincibility frames:
+-- a single 0.033s gate throttles how often overlapping bullets can deal damage.
+function Battle:checkCollisions(dt)
+    dt = dt or 0
+    self.battleClock = self.battleClock + dt
+
+    -- Keep the karma model's HP in sync with the authoritative game.hp
+    -- (items/heals mutate game.hp directly between frames).
+    self.karma.hp = self.game.hp
 
     local hx1, hy1, hx2, hy2 = self.playerHeart:getHitbox()
     local hcx, hcy = (hx1 + hx2) / 2, (hy1 + hy2) / 2
 
-    for _, entity in ipairs(self.entities) do
-        local collided = false
+    -- Contact damage is gated: at least 0.033s must have passed since the last hit.
+    -- When the gate is open every overlapping bullet deals its damage this frame
+    -- (the original evaluates the gate once per tick, then runs each overlap).
+    if self.battleClock - self.lastDamageTime >= 0.033 then
+        local hitThisFrame = false
+        for _, entity in ipairs(self.entities) do
+            local collided = false
 
-        -- Check for beam hitbox (Gaster Blaster)
-        if entity.getBeamHitbox then
-            local beam = entity:getBeamHitbox()
-            if beam then
-                -- Line-to-point collision with width
-                collided = self:checkBeamCollision(hcx, hcy, beam)
-            end
-        -- Check for regular hitbox
-        elseif entity.getHitbox and entity.damage then
-            local ex1, ey1, ex2, ey2 = entity:getHitbox()
+            -- Check for beam hitbox (Gaster Blaster)
+            if entity.getBeamHitbox then
+                local beam = entity:getBeamHitbox()
+                if beam then
+                    collided = self:checkBeamCollision(hcx, hcy, beam)
+                end
+            -- Check for regular hitbox
+            elseif entity.getHitbox and entity.damage then
+                local ex1, ey1, ex2, ey2 = entity:getHitbox()
 
-            -- AABB collision check
-            if hx1 < ex2 and hx2 > ex1 and hy1 < ey2 and hy2 > ey1 then
-                -- Check for blue bone (only hurts when moving)
-                if entity.isBlue then
-                    local moving = Input:isMoving()
-                    if not moving then
+                -- AABB collision check
+                if hx1 < ex2 and hx2 > ex1 and hy1 < ey2 and hy2 > ey1 then
+                    -- Blue bone: only hurts while the heart is moving.
+                    if entity.isBlue and not Input:isMoving() then
                         goto continue
                     end
+                    collided = true
                 end
-                collided = true
             end
-        end
 
-        -- Apply damage if collision detected
-        if collided and entity.damage then
-            local damaged = self.playerHeart:damage(entity.damage)
-            if damaged then
-                self.game.hp = self.game.hp - entity.damage
+            if collided and entity.damage then
+                self.karma:hit(entity.damage, entity.karma or 0)
                 Audio:playSfx("playerDamaged")
-
-                -- Add karma if applicable
-                if entity.karma then
-                    self.playerHeart:addKarma(entity.karma)
-                end
+                hitThisFrame = true
             end
+            ::continue::
         end
-        ::continue::
+        if hitThisFrame then
+            self.lastDamageTime = self.battleClock
+        end
     end
+
+    -- Per-frame KR cap / clamp / inertia drain.
+    self.karma:update(dt)
+
+    -- Sync back: game.hp stays authoritative, playerHeart.karma drives the HP bar.
+    self.game.hp = self.karma.hp
+    self.playerHeart.karma = self.karma.kr
 end
 
 -- Check collision between point and beam line

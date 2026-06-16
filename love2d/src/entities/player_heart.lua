@@ -68,9 +68,9 @@ function PlayerHeart.new(combatZone)
     self.invincibleDuration = 1.0
     self.flashTimer = 0
 
-    -- Karma (poison damage from original game)
+    -- Karma (KR) display mirror; the battle owns the karma model and keeps
+    -- this field in sync each frame for the HP bar.
     self.karma = 0
-    self.karmaTimer = 0
 
     return self
 end
@@ -167,10 +167,6 @@ function PlayerHeart:damage(amount)
     return true
 end
 
-function PlayerHeart:addKarma(amount)
-    self.karma = self.karma + amount
-end
-
 function PlayerHeart:update(dt)
     -- Handle invincibility
     if self.invincible then
@@ -179,15 +175,6 @@ function PlayerHeart:update(dt)
         if self.invincibleTimer <= 0 then
             self.invincible = false
             self.invincibleTimer = 0
-        end
-    end
-
-    -- Handle karma damage over time
-    if self.karma > 0 then
-        self.karmaTimer = self.karmaTimer + dt
-        if self.karmaTimer >= 0.05 then
-            self.karmaTimer = 0
-            self.karma = math.max(0, self.karma - 1)
         end
     end
 

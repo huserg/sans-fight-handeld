@@ -8,15 +8,30 @@ local Input = require("src.systems.input")
 local PlayerHeart = {}
 PlayerHeart.__index = PlayerHeart
 
--- Movement constants
--- Heart speed matches the original (HeartSpeed = 150 in the C2 Battle sheet)
+-- Movement constants (match the C2 Battle sheet "PlayerMovement", lines 3037-4481)
+-- Heart speed matches the original (HeartSpeed = 150)
 local MOVE_SPEED = 150
-local GRAVITY = 800
-local JUMP_SPEED = -350
-local MAX_FALL_SPEED = 400
--- Releasing jump mid-ascent keeps this fraction of the upward velocity,
--- giving variable jump height based on how long the button is held.
-local JUMP_CUT = 0.4
+-- Additive upward impulse applied on jump (HEART_JUMP_STRENGTH = 180)
+local JUMP_STRENGTH = 180
+-- Releasing jump while rising clamps the away-from-gravity speed to this
+-- magnitude, giving variable jump height (HEART_JUMPHOLD_CUTOFF = 30).
+local JUMP_HOLD_CUTOFF = 30
+-- Max speed along the gravity axis (MaxFallSpeed = 750)
+local MAX_FALL_SPEED = 750
+
+-- Gravity magnitude curve from the original, keyed on downSpeed (the signed
+-- velocity component along the gravity axis, positive = falling).
+local function gravityFor(downSpeed)
+    if downSpeed < 240 and downSpeed > 15 then
+        return 540
+    elseif downSpeed <= 15 and downSpeed > -30 then
+        return 180
+    elseif downSpeed <= -30 and downSpeed > -120 then
+        return 450
+    else -- downSpeed <= -120 (and the downSpeed >= 240 fall-through)
+        return 180
+    end
+end
 
 function PlayerHeart.new(combatZone)
     local self = setmetatable({}, PlayerHeart)
@@ -97,7 +112,7 @@ end
 
 -- Reset per-attack physics state so values do not leak between attacks
 function PlayerHeart:resetForAttack()
-    self.maxFallSpeed = MAX_FALL_SPEED
+    self.maxFallSpeed = MAX_FALL_SPEED -- 750, matching the original default
     self.vx, self.vy = 0, 0
     self.grounded = false
     self.gravityDirection = "down"
@@ -199,63 +214,63 @@ function PlayerHeart:updateRedMode(dt, moveX, moveY)
     self.y = self.y + moveY * MOVE_SPEED * dt
 end
 
+-- Gravity unit vector for a direction (0=right, 90=down, 180=left, 270=up
+-- in the original; here just the cardinal unit vectors).
+local GRAVITY_UNIT = {
+    down  = { 0,  1 },
+    up    = { 0, -1 },
+    left  = { -1, 0 },
+    right = { 1,  0 },
+}
+
 function PlayerHeart:updateBlueMode(dt, moveX, moveY)
-    -- Horizontal movement
-    self.x = self.x + moveX * MOVE_SPEED * dt
+    local unit = GRAVITY_UNIT[self.gravityDirection] or GRAVITY_UNIT.down
+    local gx, gy = unit[1], unit[2]
 
-    -- Determine gravity direction
-    local gravX, gravY = 0, 0
-    if self.gravityDirection == "down" then
-        gravY = GRAVITY
-    elseif self.gravityDirection == "up" then
-        gravY = -GRAVITY
-    elseif self.gravityDirection == "left" then
-        gravX = -GRAVITY
-    elseif self.gravityDirection == "right" then
-        gravX = GRAVITY
-    end
+    -- Signed velocity component along the gravity axis (positive = falling)
+    local downSpeed = self.vx * gx + self.vy * gy
 
-    -- Apply gravity
-    self.vx = self.vx + gravX * dt
-    self.vy = self.vy + gravY * dt
-
-    -- Clamp fall speed
-    local maxFall = self.maxFallSpeed
-    if self.gravityDirection == "down" then
-        self.vy = math.min(self.vy, maxFall)
-    elseif self.gravityDirection == "up" then
-        self.vy = math.max(self.vy, -maxFall)
-    elseif self.gravityDirection == "left" then
-        self.vx = math.max(self.vx, -maxFall)
-    elseif self.gravityDirection == "right" then
-        self.vx = math.min(self.vx, maxFall)
-    end
-
-    -- Jump when grounded (confirm or the up arrow)
-    if self.grounded and (Input:justPressed("confirm") or Input:justPressed("up")) then
-        if self.gravityDirection == "down" then
-            self.vy = JUMP_SPEED
-        elseif self.gravityDirection == "up" then
-            self.vy = -JUMP_SPEED
-        elseif self.gravityDirection == "left" then
-            self.vx = -JUMP_SPEED
-        elseif self.gravityDirection == "right" then
-            self.vx = JUMP_SPEED
-        end
+    -- Jump: ADDITIVE impulse opposite gravity, only when grounded
+    local jumpPressed = Input:justPressed("confirm") or Input:justPressed("up")
+    if self.grounded and jumpPressed then
+        self.vx = self.vx - gx * JUMP_STRENGTH
+        self.vy = self.vy - gy * JUMP_STRENGTH
         self.grounded = false
+        downSpeed = self.vx * gx + self.vy * gy
     end
 
-    -- Variable jump height: releasing jump while still rising cuts the ascent
+    -- Variable jump cut: releasing jump while still rising clamps the
+    -- away-from-gravity speed magnitude to JUMP_HOLD_CUTOFF (not a multiply).
     if Input:justReleased("confirm") or Input:justReleased("up") then
-        if self.gravityDirection == "down" and self.vy < 0 then
-            self.vy = self.vy * JUMP_CUT
-        elseif self.gravityDirection == "up" and self.vy > 0 then
-            self.vy = self.vy * JUMP_CUT
-        elseif self.gravityDirection == "left" and self.vx > 0 then
-            self.vx = self.vx * JUMP_CUT
-        elseif self.gravityDirection == "right" and self.vx < 0 then
-            self.vx = self.vx * JUMP_CUT
+        if downSpeed < -JUMP_HOLD_CUTOFF then
+            -- Currently rising faster than the cutoff: clamp to exactly 30.
+            self.vx = self.vx - gx * (downSpeed + JUMP_HOLD_CUTOFF)
+            self.vy = self.vy - gy * (downSpeed + JUMP_HOLD_CUTOFF)
+            downSpeed = -JUMP_HOLD_CUTOFF
         end
+    end
+
+    -- Apply the gravity curve while airborne
+    if not self.grounded then
+        local g = gravityFor(downSpeed)
+        self.vx = self.vx + gx * g * dt
+        self.vy = self.vy + gy * g * dt
+        downSpeed = downSpeed + g * dt
+    end
+
+    -- Clamp the along-gravity speed to MaxFallSpeed
+    if downSpeed > self.maxFallSpeed then
+        local excess = downSpeed - self.maxFallSpeed
+        self.vx = self.vx - gx * excess
+        self.vy = self.vy - gy * excess
+    end
+
+    -- Perpendicular axis: zeroed each tick and driven directly by player input.
+    -- For down/up gravity the player controls X; for left/right they control Y.
+    if gx == 0 then
+        self.vx = moveX * MOVE_SPEED
+    else
+        self.vy = moveY * MOVE_SPEED
     end
 
     -- Apply velocity

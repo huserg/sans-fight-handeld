@@ -305,11 +305,17 @@ function AttackSequencer:registerHandlers()
         end
     end
 
+    -- Slam direction (Param0) doubles as the gravity direction:
+    -- 0=right, 1=down, 2=left, 3=up (C2 Angle = floor(Param0)*90).
+    local SLAM_GRAVITY = { [0] = "right", [1] = "down", [2] = "left", [3] = "up" }
+
     self.handlers["SansSlam"] = function(params)
         if self.battle.playerHeart then
+            local dir = params[1] or 1
             -- The original forces blue (gravity) mode before slamming the soul.
             self.battle.playerHeart:setMode(Constants.HEARTMODE_BLUE)
-            self.battle.playerHeart:slam(params[1] or 1)
+            self.battle.playerHeart:setGravityDirection(SLAM_GRAVITY[dir] or "down")
+            self.battle.playerHeart:slam(dir)
         end
     end
 

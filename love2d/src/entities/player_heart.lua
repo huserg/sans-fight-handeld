@@ -122,6 +122,10 @@ function PlayerHeart:resetForAttack()
     self.pendingSlamDamage = false
 end
 
+-- Slam direction to the gravity direction it establishes once the soul is
+-- pinned against that wall (0=right, 1=down, 2=left, 3=up).
+local SLAM_DIRECTION = { [0] = "right", [1] = "down", [2] = "left", [3] = "up" }
+
 -- Slam the heart against a wall (direction 0=right, 1=down, 2=left, 3=up)
 function PlayerHeart:slam(direction)
     self.slamming = true
@@ -157,10 +161,10 @@ function PlayerHeart:updateSlam(dt)
         self.vx, self.vy = 0, 0
         -- Impact damage if SansSlamDamage was enabled (battle applies it)
         if self.slamDamage then self.pendingSlamDamage = true end
-        if dir == 1 then
-            self.gravityDirection = "down"
-            self.grounded = true
-        end
+        -- The slam pins the soul against the wall it hit, which becomes the
+        -- new gravity direction (0=right, 1=down, 2=left, 3=up).
+        self.gravityDirection = SLAM_DIRECTION[dir] or "down"
+        self.grounded = true
     end
 end
 
@@ -221,6 +225,16 @@ local GRAVITY_UNIT = {
     up    = { 0, -1 },
     left  = { -1, 0 },
     right = { 1,  0 },
+}
+
+-- Sprite rotation per gravity direction. The art's natural orientation points
+-- right (east), so the rotation equals the C2 Angle the gravity maps to and the
+-- soul's point visibly faces along gravity (down keeps the prior baseline).
+local GRAVITY_ANGLE = {
+    right = 0,
+    down  = math.pi / 2,
+    left  = math.pi,
+    up    = 3 * math.pi / 2,
 }
 
 function PlayerHeart:updateBlueMode(dt, moveX, moveY)
@@ -370,18 +384,21 @@ function PlayerHeart:draw()
         end
     end
 
-    -- Set color based on mode
+    -- Set color and rotation based on mode. Red mode has no gravity and keeps
+    -- its original point-down look; blue mode rotates the soul along gravity.
+    local rotation
     if self.mode == Constants.HEARTMODE_RED then
         love.graphics.setColor(1, 0, 0)
+        rotation = math.pi / 2
     else
         love.graphics.setColor(0, 0, 1)
+        rotation = GRAVITY_ANGLE[self.gravityDirection] or math.pi / 2
     end
 
-    -- Rotated 90 degrees so point faces down
     love.graphics.draw(
         self.image,
         self.x, self.y,
-        math.pi/2,
+        rotation,
         1, 1,
         self.originX, self.originY
     )

@@ -46,6 +46,8 @@ function Stubs.install()
         playSfx = function() end,
         playMusic = function() end,
         stopMusic = function() end,
+        pauseMusic = function() end,
+        resumeMusic = function() end,
     }
     package.loaded["src.entities.bone"] = FakeBone
     package.loaded["src.entities.gaster_blaster"] = FakeBlaster

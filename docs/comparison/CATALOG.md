@@ -221,6 +221,12 @@ several are cross-cutting root causes that each explain many per-attack complain
 - Looping bone/platform attacks stop sooner than the original. The VM + timing engine were
   verified faithful, so investigate **EndAttack delay vs. turn fill-time** and whether the loop
   should run for the whole turn duration.
+- **Finding (2026-06-16):** the sequencer **does** honour the trailing `EndAttack` delay (e.g.
+  `7,EndAttack`) — proven by a headless regression test; there is no early-end path (attacks end
+  only on `sequencer:isFinished()`). So the "cut short" feeling is NOT the delay. Leading suspect:
+  bones use `setLifetime(10)` instead of the original's **layout-bounds culling** (catalog S3) —
+  a bone can expire mid-flight on long attacks. **Verify on device (round 2)**; if confirmed, fix
+  by culling bones at the layout edge per travel direction instead of a fixed lifetime.
 
 ### R5 — Gaster blasters broken (MED; P1 A1, P2 A2/A6, final ring)
 - Too **small** (original scales by size 0/1/2 → `ImageWidth*2` or `*3`), **no sound**, **beam
@@ -272,7 +278,13 @@ several are cross-cutting root causes that each explain many per-attack complain
   side-scroller** (soul pinned left, point right, up/down only) but stays down; soul teleports
   left and there are **no obstacles** (too easy); then an A4-like section; the **blaster ring is
   missing**; the **final gravity-slam animation** doesn't work (depends on R3); the final hit
-  exists in Undertale but not Bad Time Simulator (artistic choice).
+  exists in Undertale but not Bad Time Simulator — **decision: add it** (user, 2026-06-16).
+
+## Decisions (user, 2026-06-16)
+- Implement the **full R1→R9 pass**.
+- Dialogues align to **Bad Time Simulator** wording (R9).
+- **Add** the Undertale-style final hit even though it's absent from Bad Time Simulator.
+- Implementation plan: `docs/superpowers/plans/2026-06-16-fidelity-tester-r1-r9.md`.
 
 ## Next-pass priority
 1. **R1** damage/karma model (affects everything; fixes the HP-refill bug).

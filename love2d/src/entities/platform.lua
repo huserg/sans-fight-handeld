@@ -80,18 +80,37 @@ function Platform:update(dt)
     end
 end
 
+-- Reusable quad for the partial last tile (one per atlas size, cached on the
+-- module so we don't allocate a fresh quad every frame).
+local function partialQuad(width)
+    if not sprites.partial then
+        sprites.partial = love.graphics.newQuad(0, 0, width, sprites.tileH,
+            sprites.tile:getDimensions())
+    else
+        sprites.partial:setViewport(0, 0, width, sprites.tileH)
+    end
+    return sprites.partial
+end
+
 function Platform:draw()
     love.graphics.setColor(1, 1, 1)
     local tw = sprites.tileW
+    -- Snap the origin to integer pixels: with nearest-neighbor filtering a
+    -- fractional position makes neighbouring tiles sample across their edges,
+    -- producing 1px seams/gaps. Tiles are then laid at exact tw multiples so
+    -- they abut perfectly.
+    local ox = math.floor(self.x + 0.5)
+    local oy = math.floor(self.y + 0.5)
+    local total = math.floor(self.width)
+
     local drawn = 0
-    while drawn < self.width do
-        local segment = math.min(tw, self.width - drawn)
+    while drawn < total do
+        local segment = math.min(tw, total - drawn)
         if segment >= tw then
-            love.graphics.draw(sprites.tile, self.x + drawn, self.y)
+            love.graphics.draw(sprites.tile, ox + drawn, oy)
         else
-            local quad = love.graphics.newQuad(0, 0, segment, sprites.tileH,
-                sprites.tile:getDimensions())
-            love.graphics.draw(sprites.tile, quad, self.x + drawn, self.y)
+            -- Final partial tile: crop the source to the remaining width.
+            love.graphics.draw(sprites.tile, partialQuad(segment), ox + drawn, oy)
         end
         drawn = drawn + tw
     end

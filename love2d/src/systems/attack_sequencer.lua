@@ -230,20 +230,22 @@ function AttackSequencer:registerHandlers()
     end
 
     -- Gaster Blaster
+    -- Params (Battle.xml): Size, StartX, StartY, EndX, EndY, EndAng, Timer(charge), BlastTime(beam hold).
     self.handlers["GasterBlaster"] = function(params)
-        local size, startX, startY, targetX, targetY, angle, chargeTime, fireTime =
+        local size, startX, startY, endX, endY, endAng, chargeTime, blastTime =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]
 
-        if targetX and targetY then
+        if endX and endY then
             local blaster = GasterBlaster.new(
-                startX or targetX,
-                startY or targetY,
-                targetX,
-                targetY,
-                angle or 0,
-                size or 1
+                startX or endX,
+                startY or endY,
+                endX,
+                endY,
+                endAng or 0,
+                size or 0
             )
-            blaster:setTiming(chargeTime or 0.5, fireTime or 0.3)
+            -- charge = WAIT duration, blast = beam hold duration (do not conflate).
+            blaster:setTiming(chargeTime or 0, blastTime or 0)
             self.battle:addEntity(blaster)
         end
     end
@@ -305,11 +307,17 @@ function AttackSequencer:registerHandlers()
         end
     end
 
+    -- Slam direction (Param0) doubles as the gravity direction:
+    -- 0=right, 1=down, 2=left, 3=up (C2 Angle = floor(Param0)*90).
+    local SLAM_GRAVITY = { [0] = "right", [1] = "down", [2] = "left", [3] = "up" }
+
     self.handlers["SansSlam"] = function(params)
         if self.battle.playerHeart then
+            local dir = params[1] or 1
             -- The original forces blue (gravity) mode before slamming the soul.
             self.battle.playerHeart:setMode(Constants.HEARTMODE_BLUE)
-            self.battle.playerHeart:slam(params[1] or 1)
+            self.battle.playerHeart:setGravityDirection(SLAM_GRAVITY[dir] or "down")
+            self.battle.playerHeart:slam(dir)
         end
     end
 
@@ -389,6 +397,12 @@ function AttackSequencer:loadProgram(events, labels)
     -- Reset per-attack heart physics so values don't leak between attacks
     if self.battle.playerHeart and self.battle.playerHeart.resetForAttack then
         self.battle.playerHeart:resetForAttack()
+    end
+
+    -- Reset Sans pose/scroll state so a dangling SansRepeat (no SansEndRepeat)
+    -- or a held hand pose doesn't leak into the next attack.
+    if self.battle.sans and self.battle.sans.resetForAttack then
+        self.battle.sans:resetForAttack()
     end
 end
 

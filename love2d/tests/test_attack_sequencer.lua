@@ -46,6 +46,25 @@ describe("AttackSequencer delays", function()
         sequencer:update(0.016)
         assert_true(sequencer:isFinished())
     end)
+
+    it("honours a trailing EndAttack delay (long/looping attacks)", function()
+        -- A wall spawned in one tick, then a 7s delay before EndAttack during
+        -- which the bones fly across; the attack must not finish early.
+        local sequencer = makeSequencer(
+            "0,BoneV,200,300,30,0,180\n" ..
+            "7,EndAttack,,\n")
+
+        local elapsed = 0
+        while elapsed < 6.9 do
+            sequencer:update(0.1)
+            elapsed = elapsed + 0.1
+        end
+        assert_true(not sequencer:isFinished(), "not finished before the 7s delay elapses")
+
+        sequencer:update(0.1)
+        sequencer:update(0.1)
+        assert_true(sequencer:isFinished(), "finished once the 7s delay elapses")
+    end)
 end)
 
 describe("AttackSequencer pause semantics", function()

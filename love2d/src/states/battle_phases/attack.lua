@@ -34,7 +34,7 @@ function AttackPhase:update(dt, battle)
 
     battle.sans:update(dt)
     battle:updateEntities(dt)
-    battle:checkCollisions()
+    battle:checkCollisions(dt)
 
     -- Update attack timer
     battle.attackTimer = battle.attackTimer + dt

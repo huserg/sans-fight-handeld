@@ -160,8 +160,11 @@ function Battle:startBattle()
         -- Reset the flag that guards the finishing player turn (post-sans_final).
         self.sansAsleep = false
 
-        -- Start megalovania and load the intro attack.
-        Audio:playMusic("megalovania", true)
+        -- Music starts only after the intro attack finishes (see onAttackFinished),
+        -- mirroring the original where megalovania kicks in once the intro plays out.
+        self.musicStarted = false
+
+        -- Load the intro attack.
         if not self.sequencer:loadAttack("sans_intro") then
             self.useTestSpawner = true
         end
@@ -224,6 +227,12 @@ function Battle:onAttackFinished()
         self.game:setState("menu")
 
     elseif mode == Constants.MODE_NORMAL or mode == Constants.MODE_PRACTICE then
+        -- Start megalovania once, when the intro attack (turn 1) has just finished.
+        if not self.musicStarted and self.turnManager:isIntro(self.turnManager:current()) then
+            Audio:playMusic("megalovania", true)
+            self.musicStarted = true
+        end
+
         if self.turnManager:isLastTurn() then
             -- sans_final has just finished; mark Sans as asleep so the
             -- finishing player turn lets FIGHT connect.
@@ -272,6 +281,18 @@ function Battle:onDialogueDone()
     end
 
     local turn = self.turnManager:current()
+
+    -- Music cues tied to the upcoming turn:
+    --   * the break (sans_spare / spare_offer) pauses megalovania;
+    --   * the REAL battle (sans_multi1) resumes it.
+    if turn then
+        if turn.event == "spare_offer" then
+            Audio:pauseMusic()
+        elseif turn.attack == "sans_multi1" then
+            Audio:resumeMusic()
+        end
+    end
+
     if turn and turn.attack then
         if not self.sequencer:loadAttack(turn.attack) then
             -- Attack CSV missing — skip to next turn.

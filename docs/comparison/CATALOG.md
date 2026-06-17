@@ -221,6 +221,12 @@ several are cross-cutting root causes that each explain many per-attack complain
 - Looping bone/platform attacks stop sooner than the original. The VM + timing engine were
   verified faithful, so investigate **EndAttack delay vs. turn fill-time** and whether the loop
   should run for the whole turn duration.
+- **Finding (2026-06-16):** the sequencer **does** honour the trailing `EndAttack` delay (e.g.
+  `7,EndAttack`) — proven by a headless regression test; there is no early-end path (attacks end
+  only on `sequencer:isFinished()`). So the "cut short" feeling is NOT the delay. Leading suspect:
+  bones use `setLifetime(10)` instead of the original's **layout-bounds culling** (catalog S3) —
+  a bone can expire mid-flight on long attacks. **Verify on device (round 2)**; if confirmed, fix
+  by culling bones at the layout edge per travel direction instead of a fixed lifetime.
 
 ### R5 — Gaster blasters broken (MED; P1 A1, P2 A2/A6, final ring)
 - Too **small** (original scales by size 0/1/2 → `ImageWidth*2` or `*3`), **no sound**, **beam

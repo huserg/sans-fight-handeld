@@ -230,20 +230,22 @@ function AttackSequencer:registerHandlers()
     end
 
     -- Gaster Blaster
+    -- Params (Battle.xml): Size, StartX, StartY, EndX, EndY, EndAng, Timer(charge), BlastTime(beam hold).
     self.handlers["GasterBlaster"] = function(params)
-        local size, startX, startY, targetX, targetY, angle, chargeTime, fireTime =
+        local size, startX, startY, endX, endY, endAng, chargeTime, blastTime =
             params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]
 
-        if targetX and targetY then
+        if endX and endY then
             local blaster = GasterBlaster.new(
-                startX or targetX,
-                startY or targetY,
-                targetX,
-                targetY,
-                angle or 0,
-                size or 1
+                startX or endX,
+                startY or endY,
+                endX,
+                endY,
+                endAng or 0,
+                size or 0
             )
-            blaster:setTiming(chargeTime or 0.5, fireTime or 0.3)
+            -- charge = WAIT duration, blast = beam hold duration (do not conflate).
+            blaster:setTiming(chargeTime or 0, blastTime or 0)
             self.battle:addEntity(blaster)
         end
     end

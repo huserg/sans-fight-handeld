@@ -57,6 +57,10 @@ function PlayerHeart.new(combatZone)
     self.vx = 0
     self.vy = 0
 
+    -- Real per-frame motion flag (any source: input, gravity, slam, platform).
+    -- Drives blue/orange bone gating; recomputed at the end of update().
+    self.moved = false
+
     -- Heart mode (red = free movement, blue = gravity)
     self.mode = Constants.HEARTMODE_RED
 
@@ -186,7 +190,13 @@ function PlayerHeart:damage(amount)
     return true
 end
 
+-- Squared distance below which the soul is considered stationary this frame.
+local MOVED_EPS_SQ = 0.01
+
 function PlayerHeart:update(dt)
+    -- Capture the pre-update position to measure real motion from every source.
+    local prevX, prevY = self.x, self.y
+
     -- Handle invincibility
     if self.invincible then
         self.invincibleTimer = self.invincibleTimer - dt
@@ -210,6 +220,12 @@ function PlayerHeart:update(dt)
 
     -- Clamp to combat zone
     self.x, self.y = self.combatZone:clampPosition(self.x, self.y, self.originX)
+
+    -- Real motion this frame, measured against the captured start position so it
+    -- captures input, gravity, slam and platform carry (vx/vy alone is unreliable
+    -- because red mode moves x/y directly without touching velocity).
+    local dx, dy = self.x - prevX, self.y - prevY
+    self.moved = (dx * dx + dy * dy) > MOVED_EPS_SQ
 end
 
 function PlayerHeart:updateRedMode(dt, moveX, moveY)

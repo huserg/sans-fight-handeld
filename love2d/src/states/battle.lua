@@ -11,6 +11,7 @@ local Sans = require("src.entities.sans")
 local BattleUI = require("src.ui.battle_ui")
 local Dialogue = require("src.ui.dialogue")
 local Bone = require("src.entities.bone")
+local shouldDamage = require("src.systems.bone_color")
 local Karma = require("src.systems.karma")
 local AttackSequencer = require("src.systems.attack_sequencer")
 
@@ -528,8 +529,10 @@ function Battle:checkCollisions(dt)
 
                 -- AABB collision check
                 if hx1 < ex2 and hx2 > ex1 and hy1 < ey2 and hy2 > ey1 then
-                    -- Blue bone: only hurts while the heart is moving.
-                    if entity.isBlue and not Input:isMoving() then
+                    -- Color gating (R6): blue only hurts while the soul is moving,
+                    -- orange only while still, white always. Uses real per-frame
+                    -- soul motion, not a key-press check.
+                    if not shouldDamage(entity.color or 0, self.playerHeart.moved) then
                         goto continue
                     end
                     collided = true

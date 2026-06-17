@@ -398,6 +398,12 @@ function AttackSequencer:loadProgram(events, labels)
     if self.battle.playerHeart and self.battle.playerHeart.resetForAttack then
         self.battle.playerHeart:resetForAttack()
     end
+
+    -- Reset Sans pose/scroll state so a dangling SansRepeat (no SansEndRepeat)
+    -- or a held hand pose doesn't leak into the next attack.
+    if self.battle.sans and self.battle.sans.resetForAttack then
+        self.battle.sans:resetForAttack()
+    end
 end
 
 function AttackSequencer:loadAttack(name)

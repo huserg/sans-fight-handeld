@@ -68,6 +68,19 @@ local HEAD_MAP = {
 }
 local BODY_MAP = { HandDown = 0, HandUp = 1, HandRight = 5, HandLeft = 7 }
 
+-- Default pose used as a fallback whenever a requested frame is unknown.
+local DEFAULT_BODY_FRAME = 0
+
+-- Horizontal bounds for moveTo / scroll wrap (native combat-area coordinates).
+local SANS_X_MIN = -60
+local SANS_X_MAX = 700
+
+local function clampX(x)
+    if x < SANS_X_MIN then return SANS_X_MIN end
+    if x > SANS_X_MAX then return SANS_X_MAX end
+    return x
+end
+
 local function loadSprites()
     if sprites.loaded then return end
 
@@ -168,8 +181,14 @@ function Sans:setBody(name)
     local frame = BODY_MAP[name]
     if frame then
         self.bodyFrame = frame
-        self.animateIdle = (name == "HandDown")
+    else
+        -- Unknown pose: fall back to the idle frame rather than keeping a stale
+        -- (possibly hand) pose that would leave the head detached.
+        self.bodyFrame = DEFAULT_BODY_FRAME
     end
+    -- Idle stepping must only run while an idle pose is held, otherwise it would
+    -- overwrite the fixed hand pose on the next update tick.
+    self.animateIdle = (self.bodyFrame == DEFAULT_BODY_FRAME)
 end
 
 -- Sweat level 0-3 (the port only has a single sweat sprite)
@@ -178,17 +197,16 @@ function Sans:setSweatLevel(level)
 end
 
 function Sans:moveTo(x)
-    self.x = x
+    self.x = clampX(tonumber(x) or self.x)
 end
 
 function Sans:setAnimation(name)
     if name == "Tired" then
         self.expression = "tired"
-        self.animateIdle = true
-    else
-        -- Idle / HeadBob
-        self.animateIdle = true
     end
+    -- Idle / HeadBob / Tired all resume idle motion, but only when an idle pose
+    -- is actually held; a fixed hand pose must not be snapped back to frame 0.
+    self.animateIdle = (self.bodyFrame == DEFAULT_BODY_FRAME)
 end
 
 function Sans:startScroll()
@@ -197,6 +215,17 @@ end
 
 function Sans:stopScroll()
     self.scrolling = false
+end
+
+-- Reset transient pose/scroll state so nothing leaks between attacks (e.g. a
+-- SansRepeat without a matching SansEndRepeat leaving Sans drifting forever).
+function Sans:resetForAttack()
+    self.scrolling = false
+    self.bodyFrame = DEFAULT_BODY_FRAME
+    self.animateIdle = true
+    self.animTimer = 0
+    self.currentIdleIndex = 1
+    self.x = clampX(self.x)
 end
 
 function Sans:update(dt)
@@ -216,7 +245,7 @@ function Sans:update(dt)
     -- Scroll horizontally across the screen, wrapping around
     if self.scrolling then
         self.x = self.x + self.scrollSpeed * dt
-        if self.x > 700 then self.x = -60 end
+        if self.x > SANS_X_MAX then self.x = SANS_X_MIN end
     end
 end
 
@@ -227,9 +256,15 @@ function Sans:draw()
 
     -- Draw body (origin at the current frame's own center, since hand poses
     -- use a different frame size than the idle frames)
-    local bodyQuad = sprites.bodyQuads[self.bodyFrame]
+    -- Guard against an out-of-range / unmapped frame index: fall back to the
+    -- default idle frame so the sprite never draws a nil quad (garbage).
+    local frame = self.bodyFrame
+    if not sprites.bodyQuads[frame] then
+        frame = DEFAULT_BODY_FRAME
+    end
+    local bodyQuad = sprites.bodyQuads[frame]
     if bodyQuad then
-        local size = sprites.bodyFrameSizes[self.bodyFrame]
+        local size = sprites.bodyFrameSizes[frame]
             or { w = BODY_FRAME_W, h = BODY_FRAME_H }
         love.graphics.draw(
             sprites.body,
@@ -253,14 +288,22 @@ function Sans:draw()
 end
 
 function Sans:drawHead(x, y, scale)
-    -- Head position: body top - half head height
-    -- Body center is at self.y, body is 70px tall, so top is at self.y - 35
-    -- Head is 32px tall, center it just above body top
-    -- Attach the skull to the jacket collar: the body frame top is the raised
-    -- arm, not the neck, so anchor relative to the collar (~20 native px above
-    -- the body center) rather than the frame top.
+    -- Attach the skull to the jacket collar. The collar sits a fixed number of
+    -- native pixels above the body frame's *top*, so the offset has to track the
+    -- current frame height: idle frames are 64x70 while the hand poses are
+    -- 96x48. Anchoring to a flat offset from self.y detaches the head whenever
+    -- Sans switches to a hand pose (the "falling apart" symptom).
+    local frame = self.bodyFrame
+    if not (sprites.bodyFrameSizes and sprites.bodyFrameSizes[frame]) then
+        frame = DEFAULT_BODY_FRAME
+    end
+    local size = (sprites.bodyFrameSizes and sprites.bodyFrameSizes[frame])
+        or { w = BODY_FRAME_W, h = BODY_FRAME_H }
+    -- Body is drawn centered on self.y, so its top is at self.y - h/2 * SCALE.
+    -- The collar sits ~15 native px below that top edge.
+    local bodyTop = self.y - (size.h / 2) * SCALE
     x = x or self.x
-    y = y or self.y - 20 * SCALE
+    y = y or bodyTop + 15 * SCALE
     scale = scale or SCALE
 
     love.graphics.setColor(1, 1, 1, self.alpha)

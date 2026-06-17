@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-06-17
+
+### Fidelity overhaul (tester round 1: R1-R9)
+
+Each change is grounded in the original Construct 2 source (`Event sheets/Battle.xml`).
+Full analysis in `docs/comparison/CATALOG.md`; plan in
+`docs/superpowers/plans/2026-06-16-fidelity-tester-r1-r9.md`.
+
+- **Damage / karma (R1):** per-frame contact damage (0.033s gate) with the KR "inertia"
+  bar — karma accumulates on hits, is capped at `min(40, HP-1)`, and drains real HP on a
+  5-tier curve (faster as KR grows). Fixes the HP bar that appeared to refill itself.
+- **Blue-soul physics (R2):** original gravity curve (540/180/450/180 by fall speed),
+  additive jump impulse 180, jump-hold cutoff 30, max-fall 750, perpendicular-axis control.
+  Heavier, floatier arc matching the original.
+- **Gravity direction + side-scroller (R3):** SansSlam now sets the soul's gravity
+  direction; the soul rotates and falls toward it; the final side-scroller is supported.
+- **Loop timing (R4):** verified (regression test) that the trailing `EndAttack` delay is
+  honoured; the "cut short" feel is tracked to bone lifetime for round 2.
+- **Gaster blasters (R5):** correct size scaling (2x/3x), screen-long beam with grow/hold/
+  decay lifecycle and pulse, charge + fire sounds, recoil; beam damage routes through the
+  karma model (dmg 1 / karma 10).
+- **Blue / orange bones (R6):** blue bones only hurt while the soul moves; orange only while
+  it is still — gated on real soul velocity, not button state.
+- **Audio / music (R7):** Megalovania starts at the end of the intro, pauses at the break,
+  resumes for the real battle.
+- **Sans sprite (R8):** head stays attached on all poses; idle no longer clobbers held
+  poses; scroll/pose state resets per attack (no more "falling apart" during gravity attacks).
+- **Cosmetic / content (R9):** clean platform tiling; per-turn dialogue replaced with
+  verbatim Bad Time Simulator text; Undertale-style final hit added.
+
 ## [2.1.1] - 2026-06-15
 
 ### Fixed (attack fidelity vs. the Construct 2 original)
